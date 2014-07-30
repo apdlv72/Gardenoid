@@ -3,15 +3,28 @@
 <html>
   <head>
     <title>Gardenoid</title>    
-
+<!--        
     <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
-    
+	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+//-->
+    <script src="js/jquery.min.js"></script>
     <script src="js/gardenoid.js"></script>
+    <script src="js/conditionals.js"></script>    
     <script src="js/countdown.js"></script>
             
     <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>        
     <link rel="stylesheet" href="css/countdown.css" type="text/css" charset="utf-8"/>    
         
+<!--        
+    <script>    
+$("body").on("swipeleft",function(){
+  alert("You swiped left!");
+});
+$("body").on("swiperight",function(){
+  alert("You swiped right!");
+});
+     </script>
+//-->
   </head>
   
   <body>		
@@ -22,7 +35,7 @@
 			<div style="margin: 5px; width: 32px; height: 32px;"> </div>			
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a href="schedules.html"><img id="calendarImage" src="img/calendar.png" /></a></div>
+			<div style="margin: 5px"><a href="schedules.html?nonce={{nonce}}"><img id="calendarImage" src="img/calendar.png" /></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>  	

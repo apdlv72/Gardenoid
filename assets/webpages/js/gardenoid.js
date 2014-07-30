@@ -206,6 +206,11 @@ function receive_status(data)
 	}		    	    	
 }
 
+function unknown_status(data)
+{
+	$("#statusPeerName").text("???");    	
+}
+
 
 function update_status()
 {
@@ -223,6 +228,7 @@ function update_status()
     	{
     		handle_json_error(a,b,c);
 	    	window.setTimeout(update_status, 4000);
+	    	unknown_status();
 	    	$("#status")[0].className = "status_unknown";		    		    		
     	});
     	

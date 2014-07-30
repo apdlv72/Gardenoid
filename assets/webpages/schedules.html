@@ -2,20 +2,29 @@
   "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
 <html>
   <head>
-    <title>Gardenoid Schedules</title>    
+    <title>Gardenoid Schedules</title>
+<!--        
     <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
-
-    <!-- <script src="/js/jquery.min.js"></script> -->
+	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
+//-->
+    <script src="js/jquery.min.js"></script>
     <script src="js/gardenoid.js"></script>
-    <script src="js/schedules.js"></script>
     <script src="js/conditionals.js"></script>    
+    <script src="js/schedules.js"></script>
         
     <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>         
     <link rel="stylesheet" href="css/schedules.css" type="text/css" charset="utf-8"/>
              
-    <script>
-    
+<!--        
+    <script>    
+$("body").on("swipeleft",function(){
+  alert("You swiped left!");
+});
+$("body").on("swiperight",function(){
+  alert("You swiped right!");
+});
      </script>
+//-->
              
   </head>
   
@@ -28,7 +37,7 @@
 			<div style="margin: 5px"><a href="javascript:do_add_schedule()"><img id="statusImage2" src="img/plus.png"/></a></div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a href="index.html"   ><img id="cancelImage" src="img/cancel.png"/></a></div>
+			<div style="margin: 5px"><a href="index.html?nonce={{nonce}}"   ><img id="cancelImage" src="img/cancel.png"/></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>

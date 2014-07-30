@@ -381,7 +381,7 @@ public class GardenoidService extends Service
     	
     	if (delta>500)
     	{
-    	if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: mCmdQueue.send took " + delta + " ms");
+    	    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: mCmdQueue.send took " + delta + " ms");
     	}
     }
     
@@ -1727,8 +1727,7 @@ public class GardenoidService extends Service
 		    onetimeMask = mOneTimeContainer.getMask();
 		    if (0==trials%10)
 		    {
-			//if (DEBUG_ONETIME_CONTAINER) 
-			    System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
+			if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		    }
 		    newFingerprint = "" + mServiceCreationTime + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
 		    changed = !newFingerprint.equalsIgnoreCase(oldFingerprint);
@@ -2217,6 +2216,7 @@ public class GardenoidService extends Service
 	    {            
 		Map<String, String> m = new HashMap<String, String>();
 
+		m.put("nonce",       ""+Math.random());
 		m.put("discovering", ""+isDiscovering());
 		m.put("connected",   ""+isConnected());
 		String[] nameAddr = getConnectedNameAndAddr();

@@ -1,9 +1,10 @@
 
-var isDiscovering  = null;
-var isConnected    = null;
-var currentPeer    = null;
-var currentPower   = null
-var currentVersion = null;
+var isDiscovering   = null;
+var isConnected     = null;
+var currentPeer     = null;
+var currentPower    = null
+var currentVersion  = null;
+var lastFingerprint = null;
 
 function unknown_status(data)
 {
@@ -19,6 +20,7 @@ function receive_status(data)
 	    var newPeer         = data["peer"];			    
 	    var newPower        = data["power"];			    
 	    var newVersion      = data["version"];
+	    lastFingerprint    = data["fingerprint"];
 	    
 	    if (currentVersion!=null && currentVersion!=newVersion)
 	    {
@@ -59,12 +61,12 @@ function receive_status(data)
 	}		    	    	
 }    
 
-
+/*
 function update_status()
 {
 	try
 	{	    	    	
-    	var url     = "/rest/status?connected=" + isConnected + "&discovering=" + isDiscovering + "&peer=" + currentPeer + "&power=" + currentPower + "&version=" + currentVersion;
+    	var url     = "/rest/status?version=" + lastVersion + "&fingerprint=" + lastFingerprint + "&nonce=" + make_nonce();
     	var request = $.getJSON(url, receive_status);	    	
     	request.success(function()      { setTimeout(update_status,  250); });
     	request.error(  function(a,b,c) { handle_json_error(a,b,c); unknown_status(); setTimeout(update_status, 4000); });
@@ -74,6 +76,7 @@ function update_status()
     	alert("update_status: Exception: " + e);	
     }
 }
+*/
 
 function clear_devices()
 {
