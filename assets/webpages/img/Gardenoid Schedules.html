@@ -1,0 +1,641 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN" "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<!-- saved from url=(0078)file:///Users/art/devel/workspaceJava/Gardenoid/assets/webpages/schedules.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Gardenoid Schedules</title>    
+    <script src="./Gardenoid Schedules_files/jquery-1.11.1.min.js"></script>
+    <!-- <script src="/js/jquery.min.js"></script> -->
+    <script src="./Gardenoid Schedules_files/gardenoid.js"></script>
+            
+    <script>
+    
+	var conditionals = {{conditionals}};
+    
+	var lastVersion     = null;
+	var lastFingerprint = null;
+    var timeSkew        = 0;
+	var dayNames        = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    
+    function log(msg)
+    {
+		try { console.log(msg); } catch (e) {}    		
+   	}
+    
+    function update_time()
+    {
+    	var now = new Date();
+    	now.setTime(now.getTime()+timeSkew);
+    	var t = now.toTimeString();
+    	var d = now.toDateString();
+    	t = t.replace(/ GMT.*/,"");
+    	d = d.replace(/ 20..$/,""); // skip year
+    	$("#statusTime").text(d + " " + t);
+    }
+    
+    function receive_status(data)
+    {
+    	try
+    	{	    	    	
+			var connected   = data["connected"];
+		    var discovering = data["discovering"];
+		    var peer        = data["peer"];
+		    var power       = data["power"];
+		    var newVersion      = data["version"];
+		    var newFingerprint  = data["fingerprint"];
+		    
+		    $("#statusVersion").text(newVersion);
+		    
+		    if (lastVersion!=null && lastVersion!=newVersion)
+		    {
+		    	log("version changed " + lastVersion + " -> " + newVersion + ", reloading");
+		    	location.reload(true);
+		    } 		    
+
+		    lastFingerprint = newFingerprint;
+		    lastVersion  = newVersion;
+		    	
+		    var remoteMillis = data["unixtime"]*1000;
+		    var localMillis  = (new Date()).getTime();
+		    timeSkew = remoteMillis-localMillis;
+		    log("remoteMillis=" + remoteMillis +", localMillis=" + localMillis + ", timeSkew=" + timeSkew);		    
+		    
+	    	$("#statusPower"   ).text(null==power ? "" : power);
+	    	$("#statusPeerName").text(null==peer  ? "" : peer);		    
+	    	$("#status")[0].className = (connected ? "status_on" : "status_off");
+		}
+		catch (e)
+		{
+			alert("receive_status: " +  e);
+		}		    	    	
+    }
+    
+    
+    function update_status()
+    {
+    	try
+    	{	    	    	
+	    	var url     = "/rest/status?version=" + lastVersion + "&fingerprint=" + lastFingerprint;
+	    	var request = $.getJSON(url, receive_status);
+	    		    	
+	    	request.success(function()
+	    	{
+	    		//log("update_status: success");
+		    	window.setTimeout(update_status, 500);		    		 
+	    	});
+	    		    	
+	    	request.error(function(a,b,c)
+	    	{
+	    		//log("update_status: error");
+	    		handle_json_error(a,b,c);
+		    	window.setTimeout(update_status, 4000);		    		    		
+	    	});
+	    	
+	    	request.complete(function() { log("update_status: complete"); });	    	
+	    }
+	    catch (e)
+	    {
+	    	alert("update_status: Exception: " + e);	
+	    }
+    }
+
+
+	function test_schedules()
+	{
+    	var schedule =
+    	{
+    		"id"            : "test4711",
+			"active"        : true,
+			"dayMask"       : 255,
+			"strandMask"    : 2+4+8+16,
+			"monthMask"     : 8+16+32+64+128,
+			"startTime"     : "08:00",
+			"endTime"       : "20:00",
+			"duration"      : "00:15",
+			"interval"      : "01:00",
+			"idCondition"   : 0,
+			"idException"   : 0,
+			"conditionArgs" : null,
+			"exceptionArgs" : null,
+			"power"         : true
+    	};
+    	var template = $("#idScheduleTemplate");    	
+ 		var dom = create_schedules_dom(1, template, schedule);	
+   	 	return dom;
+	}    
+
+    function clear_schedules()
+    {
+   	 	var target   = $("#idSchedules");
+   	 	target.empty();    	
+    }
+
+	var schedulesFingerprint = null;
+	var updateOngoing        = false; 
+	
+    function update_schedules(action, id)
+    {
+    	//log("update_schedules: was called. action=" + action +", id=" + id);    	
+    	var template = $("#idScheduleTemplate");    	
+   	 	var target   = $("#idSchedules");
+		
+		updateOngoing = true;
+   	 	
+   	 	if ("delete"==action)
+   	 	{
+   	 		try
+   	 		{	
+	   	 		sched = $("#"+id);
+	   	 		sched.hide("slow");
+	   	 		updateOngoing = false;
+	   	 		return;
+   	 		}
+   	 		catch (e)
+   	 		{
+   	 			alert("update_schedules: " + e);
+   	 			// fall thru (to have updateOngoing reset)
+   	 		}
+   	 	}
+   	 	else if ("insert"==action)
+   	 	{
+   	 		var url = "rest/schedules/get?id=" + id;   	 		
+	    	var request = $.getJSON(url, function(data)
+	    	{
+	   	 		try
+	   	 		{
+			    	 	var schedule = data["schedule"];
+			    	 	var dom = create_schedules_dom(i, template, schedule);
+			    	 	// hide the new element before appending it and show afterwards 
+			    	 	dom.hide();	  
+			    	 	target.append(dom);
+			    	 	var appended = $("#" + id);  		
+			    	 	appended.show("slow");
+			    }
+			    catch (e)
+		    	{
+		    		alert("update_schedules: " + e);
+		    	}
+	    	});
+	    	request.complete(function() { updateOngoing = false;} );	    	
+	    	return;
+   	 	}
+   	 	else if ("update"==action)
+   	 	{
+   	 		log("single update NYI");
+   	 		var updated = $("#" + id);
+   	 		updated.flash(250,1); // -> gardenoid.js
+   	 		//updated.fadeOut(50).fadeIn(50).fadeOut(50).fadeIn(50);
+   	 	}
+   	 	
+   	 	var url = "rest/schedules/list?fingerprint=" + schedulesFingerprint;
+    	var request = $.getJSON(url, function(data)
+    	{
+    	 	var schedules = data["schedules"];
+    	 	schedulesFingerprint = data["fingerprint"];
+    	 	//log("schedulesFingerprint: " + schedulesFingerprint);
+    	 	
+    	 	var doms = [];
+    	 	$.each(schedules, function(i,schedule)
+    	 	{
+    	 		var dom = create_schedules_dom(i, template, schedule);	
+		   	 	doms.push(dom);
+    	 	});	    	
+
+	   	 	target.empty();
+	   	 	doms.forEach(function(dom)
+	   	 	{
+	   	 		target.append(dom);	
+	   	 	});	   	 	
+		});
+		
+		request.error(handle_json_error);
+		request.complete(function() 
+		{
+			updateOngoing = false;
+			window.setTimeout(update_schedules,5000);
+		});
+    }
+
+    function create_schedules_dom(no, template, schedule)
+    {
+    	var s  = schedule;    	 
+    	var id     = s["id"];
+    	var active = s["active"];
+    	var power  = s["power"];
+
+    	//alert("create_schedules_dom: template: " + template);
+    	copy = template.clone();
+    	copy.removeAttr("id");
+    	copy.attr("id", id);
+    	dom = $(copy)
+
+    	if (power)  
+    	{
+    		dom.addClass("power"); 
+    		log("schedule " + no + " -> power");
+    	}    	
+    	else if (active)
+    	{ 
+    		dom.addClass("active");
+    		log("schedule " + no + " -> active");
+    	}
+		else if (no%2) 
+		{
+			dom.addClass("odd");
+    		log("schedule " + no + " -> odd");
+		}  
+    	
+    	mask  = s["strandMask"];
+    	nodes = dom.find(".strand");
+    	for (i=1; i<=8; i++)
+    	{
+    		name = "strand" + 1;
+    		nodes.filter("[name=strand" + i + "]")[0].classList.add(mask%2 ? "sx" : "ux");  
+    		mask = mask>>1;
+    	}
+
+    	mask  = s["dayMask"];
+    	nodes = dom.find(".day");
+    	for (i=1; i<=7; i++)
+    	{
+    		nodes.filter("[name=day" + i + "]")[0].classList.add(mask%2 ? "sx" : "ux");  
+    		mask = mask>>1;
+    	}
+
+    	mask  = s["monthMask"];
+    	nodes = dom.find(".month");
+     	for (i=1; i<=12; i++)
+    	{
+    		nodes.filter("[name=month" + i + "]")[0].classList.add(mask%2 ? "sx" : "ux");  
+    		mask = mask>>1;
+    	}
+    	
+    	dom.find(".startTime").text(to_hhmm(s["startTime"]));
+    	dom.find(".endTime").text(  to_hhmm(s["endTime"]  ));
+    	dom.find(".duration").text( to_hhmm(s["duration"] ));
+    	dom.find(".interval").text( to_hhmm(s["interval"] ));
+    	
+    	var idCondition   = s["idCondition"];
+    	var conditionText = ""; try { conditionText = conditionals[idCondition]["name"]; } catch (e) {}    	
+    	var conditionElem = dom.find(".conditionElem");
+    	    	
+    	if (null==idCondition || 0==idCondition)
+    	{
+    		conditionElem.hide();
+    	}
+    	else
+    	{    	
+    		var conditionArgs = s["conditionArgs"];
+    		log("conditionArgs: " + conditionArgs);
+   			//log("conditionText before: " + conditionText);
+			conditionText = conditionText.replace("$X", conditionArgs);    		
+   			//log("conditionText after: " + conditionText);
+	    	dom.find(".conditionText").text(conditionText);
+    	}
+    	
+    	var idException   = s["idException"];
+    	var exceptionText = ""; try { exceptionText = conditionals[idException]["name"]; } catch (e) {}
+    	var exceptionElem = dom.find(".exceptionElem");
+    	
+    	if (null==idException || 0==idException)
+    	{
+    		exceptionElem.hide();
+    	}
+    	else
+    	{
+    		var exceptionArgs = s["exceptionArgs"];
+    		log("exceptionArgs: " + exceptionArgs);
+    		exceptionText = exceptionText.replace("$X", exceptionArgs);
+	    	dom.find(".exceptionText").text(exceptionText);    	
+	    }
+    	return dom;
+    }
+    
+    function edit_schedule(dom)
+    {
+    	//alert("edit_schedule: dom=" + dom);
+    	id = dom.id;
+    	//alert("edit_schedule: id=" + id);
+    	
+    	var win = window.open(
+    		"/schedules/edit.html?action=edit&id=" + id + "&nonce=" + make_nonce(), 
+    		"Edit schedule", 
+    		"width=300,height=600,resizable=yes");
+	    win.focus();
+    }
+    
+    function add_schedule()
+    {
+    	var win = window.open(
+    		"/schedules/edit.html?action=add&nonce=" + make_nonce(), 
+    		"Add schedule", 
+    		"width=300,height=600,resizable=yes");
+	    win.focus();
+    }
+    
+    function start_discovery()
+    {
+    	$.getJSON("/rest/discover/start?nonce=" + make_nonce(), function (data) {}).error(handle_json_error);
+    }
+    
+    function toggle_discovery()
+    {
+    	$.getJSON("/rest/discover/toggle?nonce=" + make_nonce(), function (data) {}).error(handle_json_error);
+    }
+    
+    function stop_discovery()
+    {
+    	$.getJSON("/rest/discover/stop?nonce=" + make_nonce(), function (data) {}).error(handle_json_error);
+    }
+    
+    function disconnect_device()
+    {
+    	$.getJSON("rest/connection/stop?nonce=" + make_nonce(), function (data) {}).error(handle_json_error);
+    }
+        
+    function select_device()
+    {
+    	var win = window.open(
+    		"/devices/index.html?action=select&nonce=" + make_nonce(), 
+    		"Select device", 
+    		"width=300,height=600,resizable=yes");
+	    win.focus();
+    }    
+    
+    </script>
+        
+    <style type="text/css">    
+body 
+{
+	text-align: left;
+	direction: ltr;
+	padding: 0;
+	margin: 0;
+    font-family: Arial;
+    background-color: #202020;
+}
+
+.status_on
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#73ba8a), to(#2c8749));
+	border-bottom: 1px solid #111a33;
+	-webkit-box-shadow: inset 0 1px 1px -1px #fff;
+	-webkit-box-sizing: border-box;
+	width: 100%;
+	font-family: Helvetica, sans-serif;
+	font-size: 14px;
+	vertical-align: middle;
+}
+
+.status_off
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#ff8a73), to(#a0492c));
+	border-bottom: 1px solid #111a33;
+	-webkit-box-shadow: inset 0 1px 1px -1px #fff;
+	-webkit-box-sizing: border-box;
+	width: 100%;
+	font-family: Helvetica, sans-serif;
+	font-size: 14px;
+	vertical-align: middle;
+}
+
+.menu 
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#808080), to(#a0a0a0));
+	border-bottom: 1px solid #111a33;
+	-webkit-box-shadow: inset 0 1px 1px -1px #fff;
+	-webkit-box-sizing: border-box;
+	height: 43px;
+	position: relative;
+	width: 100%;
+	font-family: Helvetica, sans-serif;
+	font-size: 14px;
+	-webkit-box-align: center;
+	display: -webkit-box;
+}
+
+.statusText
+{
+	height: 32px;
+	/*border: 1px solid red;*/
+	margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    line-height: 32px;
+}
+
+.schedule
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#707070), to(#909090));
+	border-radius:    10px;
+	margin:            5px;
+	border: 2px outset #b0b0b0;	
+}
+
+.odd
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#909090), to(#b0b0b0));
+	border: 4px outset #d0d0d0;
+}
+
+.active
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#e0d0d0), to(#d0c0c0)) !important;
+	border: 4px outset #fff0f0 !important;	
+}
+
+.power
+{
+	background: -webkit-gradient(linear, center top, center bottom, from(#FF9090), to(#FF8080)) !important;
+	border: 4px outset #FFa0a0 !important;	
+}
+
+.s 
+{ 
+	color: #a0ffa0;
+	text-align: center;
+	float: left;
+	margin-left:.25em;
+	margin-right:.25em;
+	width: 3.2ex;
+}
+
+.monthTable
+{
+	display: table; 
+	table-layout: fixed;	
+}
+
+/* selected: */
+.ux
+{ 
+	color: #808080;  
+}
+
+/* unselected: */
+.sx 
+{
+	color: #80ff80;  
+}
+
+.spread 
+{   
+    width:        100%;
+    margin-left:  auto; 
+    margin-right: auto;
+    text-align: justify;
+    font-size:   0.1px; 
+}
+
+.spread div 
+{
+    vertical-align: top;
+    display: inline-block;
+    *display: inline;
+    font-size: 12px;
+}
+
+.stretch 
+{
+    width: 100%;
+    display: inline-block;
+    font-size: 0;
+    line-height: 0;
+}
+
+.day
+{
+	text-align: center;
+	font-size: 18px !important;	
+} 
+
+.month
+{
+	text-align: center;
+	font-size: 18px !important;	
+}
+
+.strand 
+{
+	text-align: center;
+	font-size: 18px !important;	
+}
+
+.jsonErrorLog
+{
+	background-color: white;
+	color:            black;
+	font-size:   8px;
+	font-family: Arial;
+}
+
+.statusPower
+{
+	color: #808080; 
+}
+    </style>
+        
+  </head>
+  
+  <body>
+		
+			
+  	<div id="status" class="status_off">
+  		<div class="spread">
+			<div style="margin: 5px"><a href="javascript:add_schedule()"><img id="statusImage" src="./Gardenoid Schedules_files/plus.png"></a></div>
+			<div id="statusPeerName" class="statusText">n.c.</div>
+			<div id="statusTime" class="statusText">???</div>
+			<div style="margin: 5px"><a href="file:///Users/art/devel/workspaceJava/Gardenoid/assets/webpages/index.html"><img id="cancelImage" src="./Gardenoid Schedules_files/cancel.png"></a></div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+  	
+  	<div id="idSchedules" style="margin-top:1em; margin-bottom: 1em;">
+  	</div>
+  	
+  	<div id="divSchedulesNew" class="hideTemplate" style="display:none">
+  		
+  		<div id="idScheduleTemplate" class="schedule" style="padding:.25em;" onclick="edit_schedule(this)">
+
+  			<div class="spread" id="monthDiv" style="margin-top:10px; margin-bottom:10px;">  		  				
+				<div name="month1" class="month">1</div>
+				<div name="month2" class="month">2</div>
+				<div name="month3" class="month">3</div>
+				<div name="month4" class="month">4</div>
+				<div name="month5" class="month">5</div>
+				<div name="month6" class="month">6</div> 
+				<div name="month7" class="month">7</div> 
+				<div name="month8" class="month">8</div>
+				<div name="month9" class="month">9</div>
+				<div name="month10" class="month">10</div>
+				<div name="month11" class="month">11</div>
+				<div name="month12" class="month">12</div>
+			    <span class="stretch"></span>
+			</div>
+		  	
+		  	<div class="spread" style="">
+			    <div style="font-size:18px">
+	  					<span class="startTime">??:??</span>-<span class="endTime">??:??</span>
+			    </div>
+			    <div>
+					<div name="strand1" class="strand">A</div>
+					<div name="strand2" class="strand">B</div>
+					<div name="strand3" class="strand">C</div>
+					<div name="strand4" class="strand">D</div>
+					<div name="strand5" class="strand">E</div>
+					<div name="strand6" class="strand">F</div>
+					<div name="strand7" class="strand">G</div>
+					<div name="strand8" class="strand">H</div>
+			    </div>
+			    <div style="font-size:12px;">
+	  					every <span class="interval">01:00</span> for <span class="duration">00:15</span>
+	  			</div>
+			    <span class="stretch"> </span>
+			</div>
+            <div class="spread" name="dayDiv" style="margin-top:5px; margin-bottom:10px; clear:left;">  		  				
+				<div name="day1" class="day">Sun</div> 
+				<div name="day2" class="day">Mon</div>
+				<div name="day3" class="day">Tue</div>
+				<div name="day4" class="day">Wed</div>
+				<div name="day5" class="day">Thu</div>
+				<div name="day6" class="day">Fri</div>
+				<div name="day7" class="day">Sat</div> 
+			    <span class="stretch">Y</span>
+		  	</div>
+		  	
+		  	<div style="clear: left; text-align: center;">
+		  		<span class="conditionElem">
+		  			IF <span class="conditionText">true</span> 
+		  		</span>
+		  		<span class="exceptionElem">
+			  		UNLESS <span class="exceptionText">false</span>
+			  	</span>
+		  	</div>
+		  	
+	  	</div>
+	  	
+  	</div>
+  	
+  	<div class="menu">
+  		<div class="spread">
+			<div style="margin: 5px"><a href="javascript:clear_schedules()">[CLEAR]</a></div>
+			<div class="">
+				Power:<span id="statusPower"> </span>
+				Version:<span id="statusVersion"> </span>
+			</div>
+			<div style="margin: 5px"><a href="javascript:update_schedules()">[UPDATE]</a></div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+
+  	<div id="jsonErrorLog" class="jsonErrorLog">
+  	</div>
+  	
+  
+  
+  <script>
+   	$(document).ready(update_status());
+	$(document).ready(update_schedules());
+   	window.setInterval(update_time, 1000);		    		 	
+  </script>
+  
+
+</body></html>

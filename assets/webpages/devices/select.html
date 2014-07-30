@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
+  "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<html>
+  <head>
+    <title>Devices</title>    
+    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+    <!-- <script src="/js/jquery.min.js"></script> -->
+    <script src="../js/gardenoid.js"></script>
+    <script src="../js/devices/select.js"></script>                
+    <link rel="stylesheet" href="../css/gardenoid.css"      type="text/css" charset="utf-8"/>    
+    <link rel="stylesheet" href="../css/devices/select.css" type="text/css" charset="utf-8"/>    
+  </head>
+  
+  <body>  	
+  	<div id="status" class="status_off">
+  		<div class="spread">
+			<div style="margin: 5px"><a href="javascript:toggle_discovery()"><img id="statusImage" src="../img/discover.png" width="32" height="32"/></a></div>
+			<div id="statusPeerName" class="statusPeerName">???</div>
+			<div style="margin: 5px"><a href="javascript:cancel_dialog()"><img id="cancelImage" src="../img/cancel.png" width="32" height="32" /></a></div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>	
+  	<div id="divDevices">
+  	</div>  	
+  	<div id="menu" class="menu">
+  		<p style="text-align: center; width:100%">  	
+  		  <a href="javascript:update_devices()">[UPDATE]</a>
+  		</p>
+  	</div>  	
+  	<div id="jsonErrorLog" class="jsonErrorLog">
+  	</div>  	
+  </body>
+  
+  <script>
+   	$(document).ready(update_status());
+	$(document).ready(update_devices());
+  </script>
+  
+</html>

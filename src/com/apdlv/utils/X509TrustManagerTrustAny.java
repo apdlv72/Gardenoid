@@ -1,0 +1,52 @@
+package com.apdlv.utils;
+
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+public class X509TrustManagerTrustAny implements X509TrustManager, HostnameVerifier
+{
+
+ public X509TrustManagerTrustAny() {}
+
+ public void checkClientTrusted(X509Certificate ax509certificate[], String s) {}
+ public void checkServerTrusted(X509Certificate ax509certificate[], String s) {}
+
+ public X509Certificate[] getAcceptedIssuers() { return null; }
+ public boolean verify(String h, SSLSession s) { return true; }
+
+ public static final void activate()
+ {
+     //SSLSocketFactory sf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+     //javax.net.ssl.SSLSocket sock = null;
+	 
+     X509TrustManager tm           = new X509TrustManagerTrustAny();
+     javax.net.ssl.KeyManager km[] = null;
+     TrustManager tma[]            = { tm };
+     SSLContext   sc               = null;
+     
+     try
+     {
+         System.out.println("X509TrustManagerTrustAny was activated. Will silently accept any SSL certificate.");
+         sc = SSLContext.getInstance("SSL");
+         sc.init(km, tma, new SecureRandom());
+     }
+     catch(GeneralSecurityException gsex)
+     {
+    	 gsex.printStackTrace(System.err);
+         System.out.println("X509TrustManagerTrustAny: Exception: " + gsex);
+     }
+     
+     SSLSocketFactory sf1 = sc.getSocketFactory();
+     HttpsURLConnection.setDefaultSSLSocketFactory(sf1);
+     HttpsURLConnection.setDefaultHostnameVerifier((HostnameVerifier)tm);
+ }
+ 
+}
