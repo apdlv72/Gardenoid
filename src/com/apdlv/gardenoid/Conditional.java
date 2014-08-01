@@ -11,7 +11,7 @@ import android.util.Log;
 import com.apdlv.gardenoid.db.DAO;
 import com.apdlv.gardenoid.db.Weather;
 import com.apdlv.utils.U;
-import com.venista.mjoy.weather.model.Forecast;
+import com.apdlv.yahooweather.Forecast;
 
 public class Conditional
 {

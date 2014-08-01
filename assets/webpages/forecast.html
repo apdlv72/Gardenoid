@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
+  "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<html>
+  <head>
+    <title>Gardenoid Forecast</title>
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/gardenoid.js"></script>
+    <script src="js/conditionals.js"></script>    
+    <script src="js/forecast.js"></script>    
+    <script>
+function show_weather(node)
+{
+	var day = $(node).find("#idDay").text();
+		 
+	// TODO: show all weather conditions for the selected day
+	var url = "weather.html?day=" + day;
+	alert("NYI: url=" + url);	
+}
+
+function create_forecast_dom(no, template, forecast)
+{
+	var f    = forecast;    	 
+	var id   = f["id"];
+	var day  = f["day"];
+	var code = f["code"];
+	var text = f["text"];
+	var low  = f["low"];
+	var high = f["high"];
+	var upd  = f["upd"];
+
+	copy = template.clone();
+	copy.removeAttr("id");
+	copy.attr("id", id);
+	dom = $(copy)
+
+	var dow = new Date(day).getDay(); // 5 = friday
+	if      (dow==0) dow="Sun";
+	else if (dow==1) dow="Mon";
+	else if (dow==2) dow="Tue";
+	else if (dow==3) dow="Wed";
+	else if (dow==4) dow="Thu";
+	else if (dow==5) dow="Fri";
+	else if (dow==6) dow="Sat";
+	else if (dow==7) dow="Sun";	
+	
+	if      ("Sun"==dow) dom.addClass("sunday");
+	else if ("Sat"==dow) dom.addClass("saturday");
+	else if (no%2)       dom.addClass("odd");
+	
+	dom.find("#idDay").text(day);
+	dom.find("#idDow").text(dow);
+	dom.find("#idText").text(text);
+	dom.find("#idCode").text(code);
+	dom.find("#idLow").text(low);
+	dom.find("#idHigh").text(high);
+	var img = dom.find("#idImg")[0];
+	img.src = "http://l.yimg.com/a/i/us/we/52/" + code + ".gif";
+	
+	return dom;
+}
+    
+function update_forecasts()
+{
+	var template = $("#idForecastTemplate");    	
+ 	var target   = $("#idForecasts");
+
+ 	var url = "rest/forecast/list?range=future";
+	var request = $.getJSON(url, function(data)
+	{
+	 	var forecasts = data["forecasts"];
+	 	var doms = [];
+	 	$.each(forecasts, function(i,forecast)
+	 	{
+	 		var dom = create_forecast_dom(i, template, forecast);	
+	   	 	doms.push(dom);
+	   	 	log(forecast);
+	 	});	    	
+
+   	 	target.empty();
+   	 	doms.forEach(function(dom)
+   	 	{
+   	 		target.append(dom);	
+   	 	});	   	 	
+	});
+	
+	request.error(handle_json_error);
+	request.complete(function() 
+	{
+		updateOngoing = false;
+		window.setTimeout(update_forecasts,300*1000); // every 5 minutes
+	});	
+}
+    </script>
+        
+    <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>         
+    <link rel="stylesheet" href="css/forecast.css" type="text/css" charset="utf-8"/>
+             
+  </head>
+  
+  <body>
+		
+	<!-- header menu //-->
+  	<div id="status" class="status_unknown">
+  		<div class="spread">
+			<div style="margin: 5px"> </div>
+			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
+			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
+			<div style="margin: 5px"><a href="index.html?nonce={{nonce}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+  	
+  	<div style="height:48px;"> </div>
+
+
+  	<!-- content (empty initially, will be filled with template instances)//-->
+  	<div id="idForecasts" style="margin-top:.5em; margin-bottom: .5em;">
+  	</div>
+  	
+  	<!-- this div hides the template dom //-->
+  	<div id="divForecastHide" class="hideTemplate" style="display:none">
+  		
+  		<!-- template dom //-->
+  		<div id="idForecastTemplate" class="forecast" style="padding:.25em;">
+
+  			<div id="monthDiv" style="margin-top:10px; margin-bottom:10px;" onclick="show_weather(this);">
+  				<div style="margin-left: 1em; margin-right: 1em; float: left; text-align: center;">
+  					<img id="idImg" src="http://l.yimg.com/a/i/us/we/52/34.gif"><br>
+  				</div>
+  				<div>  		  				
+  					<span id="idDow">Dow</span> <span id="idDay">2014-01-01</span>
+  				</div>
+  				<div><!-- <span id="idCode"> </span> //--><span id="idText">Sunny</span></div>  		  				
+  				<div><span id="idLow">10</span>C / <span id="idHigh">15</span>C</div>
+			</div>
+		  	
+	  	</div>	  	
+  	</div>  	
+  	
+  	<!-- footer menu //-->
+  	<div class="menu">
+  		<div class="spread">
+			<div style="margin: 5px"> </div>
+			<div >
+				<div class="statusText" style="display: block; height:1em;">
+					Power:<span id="statusPower"> </span>
+				</div>
+				<div class="statusText" style="display: block;  height:1em;">
+					Version:<span id="statusVersion"> </span>
+				</div>
+			</div>
+			<div style="margin: 5px"> </div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+
+  	
+  	<div id="jsonErrorLog" class="jsonErrorLog">
+  	</div>
+  	
+  	<div style="height:48px;"> </div>
+  	
+  </body>
+  
+  <script>
+   	$(document).ready(update_status());
+	$(document).ready(update_forecasts());
+   	window.setInterval(update_time, 1000);		    		 	
+  </script>
+  
+</html>

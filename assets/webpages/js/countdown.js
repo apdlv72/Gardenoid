@@ -1,4 +1,4 @@
-
+show_dialog
 var strandInDialog = -1;
 
 function hide_dialog()

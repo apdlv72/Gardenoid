@@ -48,9 +48,9 @@ import com.apdlv.gardenoid.db.Event;
 import com.apdlv.gardenoid.db.Schedule;
 import com.apdlv.gardenoid.db.Weather;
 import com.apdlv.utils.U;
-import com.venista.mjoy.weather.model.Forecast;
-import com.venista.mjoy.weather.model.WeatherConditions;
-import com.venista.mjoy.weather.service.ForecastProvider;
+import com.apdlv.yahooweather.Forecast;
+import com.apdlv.yahooweather.ForecastProvider;
+import com.apdlv.yahooweather.WeatherConditions;
 
 import fi.iki.elonen.NanoHTTPD;
 //import com.apdlv.gardenoid.MyJson.JArray;
@@ -262,19 +262,15 @@ public class GardenoidService extends Service
             {
 	        int  mask = 0;	        
 	        long nowUnixtime = DAO.nowUnixtime();
-	        String active = "";
-	        for (int i=0; i<8; i++)
+	        for (int i=7; i>=0; i--)
 	        {
 	            mask<<=1;
 		    if (oneTimeSchedules[i].isActiveX(nowUnixtime))
 		    {
 			mask|=1;
-			if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: schedule " + (i+1) + " active, mask:=" + mask);
-			active += "" + (i+1) + " ";
 		    }
 	        }
 
-	        if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: computeMask: returning mask=" + mask + ", active=" + active);
 	        return mask;
             }
 
@@ -358,7 +354,7 @@ public class GardenoidService extends Service
     private TemplateEngine   mTemplateEngine;
     private ForecastProvider mForecastProvider;
     private ConditionChecker mConditionChecker;
-    private long mServiceCreationTime;
+    private String           mServiceVersion;
 
 
     @Override
@@ -450,7 +446,8 @@ public class GardenoidService extends Service
 	{
 	    super.onCreate();
 
-	    this.mServiceCreationTime = DAO.now().getTimeInMillis();
+	    SimpleDateFormat YYYYMMDD_hhmmss = new  SimpleDateFormat("yyyyMMdd_HHmmss");	    
+	    mServiceVersion = YYYYMMDD_hhmmss.format(Calendar.getInstance().getTime());
 
 	    Toast.makeText(getApplicationContext(), "Service Created",Toast.LENGTH_SHORT).show();
 	    initBluetooth();
@@ -1303,11 +1300,11 @@ public class GardenoidService extends Service
 	    }
         }
 
-	public final long now()
-	{
-	    return Calendar.getInstance().getTimeInMillis();
-	}
-	
+//	public final long now()
+//	{
+//	    return Calendar.getInstance().getTimeInMillis();
+//	}
+//	
 	public Command send(String name, boolean doWait, String ... args)
 	{
 	    cleanupExpired();
@@ -1546,7 +1543,7 @@ public class GardenoidService extends Service
 		    boolean success = mConnectThread.connectTo(device);
 		    mDao.addEvent(new Event("connectTo", "name", device.getName(), "addr", device.getAddress()));
 		    String error = success ? "none" : "Timeout";
-		    msg.append("{ \"success\" : ").append(success).append(", \"error\": ").append(error).append("\" }");
+		    msg.append("{ \"success\" : ").append(success).append(", \"error\": \"").append(error).append("\" }");
 		}
 
 		Response r = new Response(NanoHTTPD.Response.Status.OK, CT_TEXT_JSON, msg.toString());
@@ -1729,7 +1726,7 @@ public class GardenoidService extends Service
 		    {
 			if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		    }
-		    newFingerprint = "" + mServiceCreationTime + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
+		    newFingerprint = "" + mServiceVersion + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
 		    changed = !newFingerprint.equalsIgnoreCase(oldFingerprint);
 		    if (!changed)
 		    {
@@ -1741,18 +1738,19 @@ public class GardenoidService extends Service
 		if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		Calendar now = U.now();
 		long nowUnixtime = DAO.datetimeToUnixtime(now);
-		msg.append("{ \"changed\" : ").append(changed);
-		msg.append(", \"version\" :").append(mServiceCreationTime);
-		msg.append(", \"discovering\" : ").append(isDiscovering());
-		msg.append(", \"connected\" : ").append(isConnected());
-		msg.append(", \"peer\" : ").append(MyJson.nullOrInDoubleQuotes(getCurrentPeer()));
-		msg.append(", \"now\" : \"").append(U.toYYYYMMDD_hhmmss(now)).append("\"");
-		msg.append(", \"unixtime\" : ").append(nowUnixtime).append(" ");
-		msg.append(", \"fingerprint\" : ").append(MyJson.nullOrInDoubleQuotes(newFingerprint));
-		msg.append(", \"power\" : ").append(mActiveStrandsMask|onetimeMask).append(" ");
-		msg.append(", \"scheduled\" : ").append(mActiveStrandsMask).append(" ");
-		msg.append(", \"onetime\" : ").append(onetimeMask).append(" ");
-		msg.append(", \"onetimeList\": ").append(mOneTimeContainer.toJson(nowUnixtime));
+		msg.append("{ \"changed\": ").append(changed);
+		// version will let HTML frontend detect when to reload the whole page because of reinstall:
+		msg.append(", \"version\":\"").append(mServiceVersion).append("\"");  
+		msg.append(", \"discovering\":").append(isDiscovering());
+		msg.append(", \"connected\":").append(isConnected());
+		msg.append(", \"peer\":").append(MyJson.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
+		msg.append(", \"now\":\"").append(U.toYYYYMMDD_hhmmss(now)).append("\"");
+		msg.append(", \"unixtime\":").append(nowUnixtime);
+		msg.append(", \"fingerprint\":").append(MyJson.nullOrEscapedInDoubleQuotes(newFingerprint));
+		msg.append(", \"power\":").append(mActiveStrandsMask|onetimeMask);
+		msg.append(", \"scheduled\":").append(mActiveStrandsMask);
+		msg.append(", \"onetime\":").append(onetimeMask);
+		msg.append(", \"onetimeList\":").append(mOneTimeContainer.toJson(nowUnixtime));
 		msg.append("}\n");
 
 		Response r = new Response(STATUS_200, CT_TEXT_PLAIN, msg.toString());
@@ -1813,10 +1811,9 @@ public class GardenoidService extends Service
 		    first = false;
 		}
 		sb.append("\n]\n}");
-		Response r = new Response(STATUS_301, CT_TEXT_JSON, sb.toString());
+		Response r = new Response(STATUS_200, CT_TEXT_JSON, sb.toString());
 		r.addHeader("Pragma", "no-cache");
 		return r;
-
 	    }
 	    else if (resource.startsWith("/forecast/get"))
 	    {
@@ -1881,7 +1878,6 @@ public class GardenoidService extends Service
 	    r.addHeader("Pragma", "no-cache"); //System.out.println("SENDING: " + msg);
 	    return r;
 	}
-
 
 	@Override 
 	public Response serve(IHTTPSession session) 

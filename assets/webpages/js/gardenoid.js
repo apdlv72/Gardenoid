@@ -261,3 +261,14 @@ function disconnect_device()
 	$.getJSON("rest/connection/stop?nonce=" + make_nonce(), function (data) {}).error(handle_json_error);
 }
     
+function update_time()
+{
+	var now = new Date();
+	now.setTime(now.getTime()+timeSkew);
+	var t = now.toTimeString();
+	var d = now.toDateString();
+	t = t.replace(/ GMT.*/,"");
+	d = d.replace(/ 20..$/,""); // skip year
+	$("#statusTime").text(d + " " + t);
+}
+

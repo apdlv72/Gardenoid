@@ -277,9 +277,9 @@ public class Schedule
 	sb.append(", \"duration\" : \"").append(getDuration()).append("\"");
 	sb.append(", \"interval\" : \"").append(getInterval()).append("\"");
 	sb.append(", \"idCondition\" : ").append(getIdCondition());
-	sb.append(", \"conditionArgs\" : ").append(MyJson.nullOrInDoubleQuotes(getConditionArgs())).append("");
+	sb.append(", \"conditionArgs\" : ").append(MyJson.nullOrEscapedInDoubleQuotes(getConditionArgs())).append("");
 	sb.append(", \"idException\" : ").append(getIdException());
-	sb.append(", \"exceptionArgs\" : ").append(MyJson.nullOrInDoubleQuotes(getExceptionArgs())).append("");    
+	sb.append(", \"exceptionArgs\" : ").append(MyJson.nullOrEscapedInDoubleQuotes(getExceptionArgs())).append("");    
 	sb.append(", \"power\" : ").append(isPower());    
 	sb.append(" }");
 	return sb.toString();	

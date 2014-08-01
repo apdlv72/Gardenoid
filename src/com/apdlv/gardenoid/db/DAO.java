@@ -28,6 +28,7 @@ public class DAO extends SQLiteOpenHelper
     private static final String TABLE_WEATHER   = "weather";
     private static final String TABLE_FORECAST  = "forecast";
     private static final String TABLE_EVENTS    = "events";
+    private static final String TABLE_CODES    = "codes";
 
 
     private static final String[] COLUMNS_SCHEDULES = 
@@ -37,7 +38,9 @@ public class DAO extends SQLiteOpenHelper
     private static final String[] COLUMNS_FORECAST = 
 	{ "id", "day",  "code", "text", "low", "high", "updated" }; 
     private static final String[] COLUMNS_EVENTS  = 
-	{ "id", "active_mask", "date", "message", "json", }; 
+	{ "id", "active_mask", "date", "message", "json", };     
+    private static final String[] COLUMNS_CODES =
+	{ "id", "code", "imglink", };
 
     private static final String COLUMN_LIST = concatColumns(COLUMNS_SCHEDULES); 
 
@@ -66,6 +69,30 @@ public class DAO extends SQLiteOpenHelper
     @Override
     public void onCreate(SQLiteDatabase db) 
     {	
+	try
+	{
+	    String CREATE_TABLE = 
+		    "CREATE TABLE IF NOT EXISTS codes " +
+			    "( " +
+			    "id INTEGER PRIMARY KEY AUTOINCREMENT " 
+			    + ", code         INTEGER " 
+			    + ", imglink      STRING "
+			    + ")";
+	    db.execSQL(CREATE_TABLE);
+	    for (String column : new String[] { "code" })
+	    {
+		String SQL_IDX = "CREATE INDEX idx_codes_" + column + " ON codes (" + column + ")"; 
+		db.execSQL(SQL_IDX);
+	    }
+	}
+	catch (Exception e)
+	{
+	    StringWriter sw = new StringWriter();
+	    e.printStackTrace(new PrintWriter(sw));
+	    String exceptionAsString = sw.toString();
+	    Log.e(TAG, "onCreate: " + exceptionAsString);
+	}
+	
 	try
 	{
 	    //db.execSQL("DROP TABLE IF EXISTS " + TABLE_EVENTS);	    
@@ -220,6 +247,54 @@ public class DAO extends SQLiteOpenHelper
 	    addForecast(db, f);
 	}
     }
+
+    public long addOrUpdateCode(long code, String url)
+    {
+        // 1. get reference to writable DB
+        SQLiteDatabase db = this.getWritableDatabase();
+        long id = -1;
+        try
+        {
+            id = updateCode(db, code, url);
+        }
+        catch (Exception e)
+        {
+            Log.e(TAG, ""+e);
+        }
+        
+        if (id<1)
+        {
+            try
+            {
+                id = addCode(db, code, url);
+            }
+            catch (Exception e)
+            {
+                Log.e(TAG, ""+e);
+            }            
+        }
+        
+        // 4. close            
+        db.close();
+        return id;
+    }
+    
+    
+    private long updateCode(SQLiteDatabase db, long code, String url)
+    {
+        ContentValues values = codeToContentValues(code, url);
+        int i = db.update(TABLE_CODES, // table
+        	  values,  // column/value
+        	  "code=?",
+        	  new String[] { String.valueOf(code) }); //selection args
+        // do NOT close here
+        //db.close();
+        return i;
+    }
+
+
+
+
 
     public long addSchedule(Schedule schedule)
     {
@@ -505,6 +580,21 @@ public class DAO extends SQLiteOpenHelper
         return id;
     }
 
+    private long addCode(SQLiteDatabase db, long code, String url)
+    {
+        //for logging
+        Log.d("addCode ", "" + code + ", " + url); 
+    
+        ContentValues values = codeToContentValues(code, url);
+    
+        // 3. insert
+        long id = db.insert(TABLE_CODES, // table
+        	null, //nullColumnHack
+        	values); // key/value -> keys = column names/ values = column values
+        // do NOT close here
+        return id;
+    }
+
     private long addWeather(SQLiteDatabase db, Weather weather)
     {
         //for logging
@@ -575,6 +665,38 @@ public class DAO extends SQLiteOpenHelper
 
 	// 5. return schedule
 	return schedule;
+    }
+
+
+    public String getUrlForCode(int code)
+    {
+	// 1. get reference to readable DB
+	SQLiteDatabase db = this.getReadableDatabase();
+
+	// 2. build query
+	Cursor cursor = 
+		db.query(TABLE_CODES, // a. table
+			 COLUMNS_CODES, // b. column names
+			 " code = ?", // c. selections 
+			 new String[] { String.valueOf(code) }, // d. selections args
+			 null, // e. group by
+			 null, // f. having
+			 null, // g. order by
+			 null); // h. limit
+
+	// 3. if we got results get the first one
+	if (cursor != null)
+	    cursor.moveToFirst();
+
+	int n=0;
+        @SuppressWarnings("unused")
+        int id     = cursor.getInt(n++);
+        @SuppressWarnings("unused")
+        int code2  = cursor.getInt(n++);
+	String url = cursor.getString(n++);
+
+	// 5. return schedule
+	return url;
     }
 
 
@@ -898,6 +1020,13 @@ public class DAO extends SQLiteOpenHelper
         return f;
     }
 
+    private static ContentValues codeToContentValues(long id, String url)
+    {
+	ContentValues values = new ContentValues();
+	values.put("code",      id);
+	values.put("imgurl",    url);
+	return values;
+    }
     
     private static ContentValues scheduleToContentValues(Schedule schedule)
     {

@@ -152,18 +152,16 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	intentFilter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
 	registerReceiver(mConnection, intentFilter);
 	
-	
-	SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
-	boolean firstRun = p.getBoolean("PREFERENCE_FIRST_RUN", true);
-	// commit AFTER we copied pages
-	//p.edit().putBoolean("PREFERENCE_FIRST_RUN", false).commit();
-	
 	mAssetManager = getAssets();
+	
 	try
 	{	    
-	    //if (firstRun)
+	    SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
+	    boolean firstRun = p.getBoolean("PREFERENCE_FIRST_RUN", true);	
+	    if (firstRun)
 	    {
 		copyWebPagesToSDCard(TemplateEngine.DIR_PREFIX_WEBPAGES);
+		// commit AFTER we copied pages
 		p.edit().putBoolean("PREFERENCE_FIRST_RUN", false).commit();
 	    }
 	}

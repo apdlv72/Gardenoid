@@ -9,12 +9,10 @@ import java.util.Calendar;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
-import com.apdlv.gardenoid.MyJson.JArray;
 import com.apdlv.ilibaba.bt.BTMagics;
 import com.apdlv.ilibaba.bt.SPPService;
 import com.apdlv.utils.U;
@@ -466,7 +464,7 @@ class ConnectThread extends Thread
 	this.mLastStateChange = Calendar.getInstance().getTimeInMillis();
     }
 
-    
+    /*
     private MyJson logDeviceServices(BluetoothDevice device)
     {
         if (null==device) return null;
@@ -516,17 +514,7 @@ class ConnectThread extends Thread
             return json("exception", ""+e);
         }
     }
-
-    @SuppressWarnings("unused")
-    private static MyJson json(String key, long value) 
-    {
-	return new MyJson(key, value);
-    }
-    
-    private static MyJson json(String key, String value) 
-    {
-	return new MyJson(key, value);
-    }
+    */
 
     private void log(String msg)
     {

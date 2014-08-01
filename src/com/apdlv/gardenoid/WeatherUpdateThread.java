@@ -12,9 +12,9 @@ import android.util.Log;
 
 import com.apdlv.gardenoid.db.DAO;
 import com.apdlv.gardenoid.db.Weather;
-import com.venista.mjoy.weather.model.Forecast;
-import com.venista.mjoy.weather.model.WeatherConditions;
-import com.venista.mjoy.weather.service.ForecastProvider;
+import com.apdlv.yahooweather.Forecast;
+import com.apdlv.yahooweather.ForecastProvider;
+import com.apdlv.yahooweather.WeatherConditions;
 
 public class WeatherUpdateThread extends Thread
 {
@@ -48,7 +48,8 @@ public class WeatherUpdateThread extends Thread
 		{
 		    // http://weather.yahooapis.com/forecastrss?p=GMXX0018&u=c
 		    updateForecasts(wc);
-		    updateWeather(wc);			
+		    updateWeather(wc);	
+		    updateCodes(wc);
 		}
 	    }
 	    else
@@ -85,6 +86,23 @@ public class WeatherUpdateThread extends Thread
 
 	    com.apdlv.gardenoid.db.Forecast fc = new com.apdlv.gardenoid.db.Forecast(day, code, text, low, high);
 	    mDatabase.insertOrUpdateForecast(fc);
+	}
+    }
+
+    private void updateCodes(WeatherConditions wc) throws Exception
+    {
+	try
+	{
+	    Map<String, String> cond = wc.getCondition();
+	    int    code = toInt(cond.get("code"));
+	    String url  = wc.getDescImage();
+	    if (null==url) return;
+
+	    mDatabase.addOrUpdateCode(code, url);
+	}
+	catch (Exception e)
+	{
+	    Log.e(TAG, ""+e);
 	}
     }
 
