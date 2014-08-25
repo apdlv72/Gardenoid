@@ -25,8 +25,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.webkit.JsResult;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.Button;
@@ -180,8 +183,39 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	//mTextViewMask = (TextView) findViewById(R.id.textViewMask);
 
 	mWebView = (WebView) findViewById(R.id.webView1);
+	
+	// enable java script
 	WebSettings webSettings = mWebView.getSettings();
 	webSettings.setJavaScriptEnabled(true);
+	
+	// make links open in the web view not in default browser:
+	mWebView.setWebViewClient(new WebViewClient() {
+	    @Override
+	    public boolean shouldOverrideUrlLoading(WebView view, String url){
+	      view.loadUrl(url);
+	      return true;
+	    }
+	});
+	
+	// make alert() work
+	mWebView.setWebChromeClient(new WebChromeClient() {
+		@Override
+		public boolean onJsAlert(WebView view, String url, String message, android.webkit.JsResult result) {
+    		    //Required functionality here
+    		    return super.onJsAlert(view, url, message, result);
+	       }
+		@Override
+		public boolean onJsConfirm(WebView view, String url, String message, JsResult result)
+		{
+		    return super.onJsConfirm(view, url, message, result);
+		}
+		@Override
+		public void onCloseWindow(WebView window)
+		{
+        		//super.onCloseWindow(window);
+        		window.loadUrl("http://127.0.0.1:8080/index.html");
+		}
+	});
 	
 	// register HttpServiceConnection to receive events when network configuration chenges
 	// such taht it will be able to update the service link displayed 
