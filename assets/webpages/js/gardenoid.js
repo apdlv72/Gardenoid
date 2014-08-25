@@ -13,8 +13,12 @@ function log(msg)
 
 function select_device()
 {
+	var url = "/devices.html?action=select&nonce=" + make_nonce();
+	window.location = url;
+	return;
+	
 	var win = window.open(
-		"/devices/select.html?action=select&nonce=" + make_nonce(), 
+		urk, 
 		"Select device", 
 		"width=300,height=600,resizable=yes");
     win.focus();

@@ -11,7 +11,8 @@ function unknown_status(data)
 	$("#statusPeerName").text("???");    	
 }
 
-/*
+// this function overides the one by the same name 
+// in gardeniod.js but will additionally update the "scanning" icon
 function receive_status(data)
 {
 	try
@@ -61,7 +62,7 @@ function receive_status(data)
 		alert("receive_status: " +  e);
 	}		    	    	
 }    
-*/
+
 /*
 function update_status()
 {

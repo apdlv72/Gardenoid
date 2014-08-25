@@ -6,20 +6,20 @@
     <title>Devices</title>    
     <script src="/js/jquery.min.js"></script>
     <script src="/js/gardenoid.js"></script>
-    <script src="/js/devices/select.js"></script>                
-    <link rel="stylesheet" href="../css/gardenoid.css"      type="text/css" charset="utf-8"/>    
+    <script src="/js/devices.js"></script>                
+    <link rel="stylesheet" href="/css/gardenoid.css" type="text/css" charset="utf-8"/>    
     <!-- order matters. below js will overwrite some functions of generic one above. //-->
-    <link rel="stylesheet" href="../css/devices/select.css" type="text/css" charset="utf-8"/>    
+    <link rel="stylesheet" href="/css/devices.css"   type="text/css" charset="utf-8"/>    
   </head>
   
   <body>  	
 	<!-- header menu //-->
   	<div id="status" class="status_unknown">
   		<div class="spread">
-			<div style="margin: 5px"><a href="javascript:toggle_discovery()"><img id="statusImage" src="../img/discover.png" width="32" height="32"/></a></div>
+			<div style="margin: 5px"><a href="javascript:toggle_discovery()"><img id="statusImage" src="/img/discover.png" width="32" height="32"/></a></div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a href="javascript:cancel_dialog()"><img id="cancelImage" src="../img/cancel.png" width="32" height="32" /></a></div>
+			<div style="margin: 5px"><a href="/index.html?nonce={{nonce}}"><img id="cancelImage" src="/img/cancel.png" width="32" height="32" /></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>

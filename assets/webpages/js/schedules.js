@@ -493,7 +493,7 @@ function update_schedule()
 		
 		try
 		{
-			$("#idDeleteButton").remove();
+			$("#idDeleteButton").hide();
 			//$("#idScheduleDialog").remove();
 		}
 		catch (e)
@@ -504,6 +504,7 @@ function update_schedule()
 	}
 	else
 	{
+		$("#idDeleteButton").show();
 		$("#idTitle").text("Edit schedule");
 	}
 	
