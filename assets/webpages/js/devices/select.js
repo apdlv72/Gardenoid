@@ -11,6 +11,7 @@ function unknown_status(data)
 	$("#statusPeerName").text("???");    	
 }
 
+/*
 function receive_status(data)
 {
 	try
@@ -60,7 +61,7 @@ function receive_status(data)
 		alert("receive_status: " +  e);
 	}		    	    	
 }    
-
+*/
 /*
 function update_status()
 {

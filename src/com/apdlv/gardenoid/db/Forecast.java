@@ -41,7 +41,7 @@ public class Forecast
     @Override
     public String toString() 
     {
-        return Weather.class.getSimpleName() + toJson(); 
+        return Weather.class.getSimpleName() + toJson(Calendar.getInstance().getTimeInMillis()/1000); 
     }
         
     //getters & setters
@@ -115,7 +115,7 @@ public class Forecast
         this.high = high;
     }
 
-    public String toJson()
+    public String toJson(long nowUnixtime)
     {
 	StringBuilder sb = new StringBuilder();
 	sb.append("  { ");
@@ -125,6 +125,9 @@ public class Forecast
 	sb.append("\"text\": ").append(U.escapedOrNull(getText())).append(", ");
 	sb.append("\"low\": ").append(getLow()).append(", ");
 	sb.append("\"high\": ").append(getHigh()).append(", ");
+	
+	long unixTime = getDay().getTimeInMillis()/1000;	
+	sb.append("\"future\": ").append(unixTime>nowUnixtime).append(", ");
 	
 	Calendar u = getUpdated();
 	String updated = null==u ? "null" : "\"" + U.YYYYMMDD_hhmmss.format(getUpdated().getTime()) + "\""; 

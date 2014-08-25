@@ -4,31 +4,51 @@
 <html>
   <head>
     <title>Devices</title>    
-    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
-    <!-- <script src="/js/jquery.min.js"></script> -->
-    <script src="../js/gardenoid.js"></script>
-    <script src="../js/devices/select.js"></script>                
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/gardenoid.js"></script>
+    <script src="/js/devices/select.js"></script>                
     <link rel="stylesheet" href="../css/gardenoid.css"      type="text/css" charset="utf-8"/>    
     <!-- order matters. below js will overwrite some functions of generic one above. //-->
     <link rel="stylesheet" href="../css/devices/select.css" type="text/css" charset="utf-8"/>    
   </head>
   
   <body>  	
-  	<div id="status" class="status_off">
+	<!-- header menu //-->
+  	<div id="status" class="status_unknown">
   		<div class="spread">
 			<div style="margin: 5px"><a href="javascript:toggle_discovery()"><img id="statusImage" src="../img/discover.png" width="32" height="32"/></a></div>
-			<div id="statusPeerName" class="statusPeerName">???</div>
+			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
+			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
 			<div style="margin: 5px"><a href="javascript:cancel_dialog()"><img id="cancelImage" src="../img/cancel.png" width="32" height="32" /></a></div>
 		    <span class="stretch"> </span>
 	   </div>
-	</div>	
-  	<div id="divDevices">
-  	</div>  	
-  	<div id="menu" class="menu">
-  		<p style="text-align: center; width:100%">  	
-  		  <a href="javascript:update_devices()">[UPDATE]</a>
-  		</p>
-  	</div>  	
+	</div>
+	
+  	<!-- content (empty initially, will be filled by java script)//-->
+  	<div id="divDevices" style="margin-top:3em; margin-bottom:1em;">
+  	</div>
+  	  	
+	<div style="text-align: center; color: #ffffff; margin-bottom:4em;">
+    	<a href="javascript:update_devices()">[UPDATE]</a>
+    </div>
+    
+  	<!-- footer menu //-->
+  	<div class="menu">
+  		<div class="spread">
+			<div style="margin: 5px"> </div>
+			<div >
+				<div class="statusText" style="display: block; height:1em;">
+					Power:<span id="statusPower"> </span>
+				</div>
+				<div class="statusText" style="display: block;  height:1em;">
+					Version:<span id="statusVersion"> </span>
+				</div>
+			</div>
+			<div style="margin: 5px"> </div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>  	
   </body>
@@ -36,6 +56,7 @@
   <script>
    	$(document).ready(update_status());
 	$(document).ready(update_devices());
+   	window.setInterval(update_time, 1000);		    		 	
   </script>
   
 </html>

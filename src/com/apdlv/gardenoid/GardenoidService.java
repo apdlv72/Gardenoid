@@ -9,7 +9,9 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
@@ -27,6 +29,8 @@ import java.util.Vector;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -39,6 +43,7 @@ import android.content.res.AssetManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -63,21 +68,34 @@ import fi.iki.elonen.NanoHTTPD;
  */
 public class GardenoidService extends Service 
 {
+    public static final String ACTION_NOTIFICATION = "GardenoidService.Notification.clicked";
+
     private static final String PREFKEY_BT_DEVICE_ADDR = "BT_DEVICE_ADDR";
     public static final int MSG_STATUS  = 1;
     public static final int MSG_SRVADDR = 2;
-    
+    public static final int MSG_MASK    = 3;
+
     private static final boolean DEBUG_ONETIME_CONTAINER = false; // debug
 
     public static final String TAG = GardenoidService.class.getSimpleName();
 
     public final static String RFC1123_PATTERN = "EEE, dd MMM yyyy HH:mm:ss z";
-    
+
     public final static Locale LOCALE_US = Locale.US;
     public final static SimpleDateFormat RFC1123FORMAT = new SimpleDateFormat(RFC1123_PATTERN, LOCALE_US);
     public final static TimeZone GMT_ZONE = TimeZone.getTimeZone("GMT");
 
-    
+    private CommandQueue.Command sendEffectiveMaskToControllerAndActivity(int mask)
+    {
+	String command = String.format("M%x", mask);
+	CommandQueue.Command cmd = mCmdQueue.send(command, false /* do NOT wait */);
+	if (null!=mHandler)
+	{
+	    mHandler.obtainMessage(MSG_MASK, mask).sendToTarget();
+	}
+	return cmd;
+    }
+
     public GardenoidService() 
     {
 	System.out.println("GardenoidService");
@@ -131,224 +149,224 @@ public class GardenoidService extends Service
 	}
 
 	public String toJsonX()
-        {
+	{
 	    long now  = DAO.nowUnixtime();
 	    long left = getSecondsLeftX(now);
 	    long end  = endtimeUnix>now ? 0 : endtimeUnix; 
 	    try
-            {
-	        return new JSONObject().put("no",strandNo).put("end",end).put("left",left).put("active",left>0).toString();
-            }
+	    {
+		return new JSONObject().put("no",strandNo).put("end",end).put("left",left).put("active",left>0).toString();
+	    }
 	    catch (JSONException e)
-            {
-	        e.printStackTrace();
-	        return ""+e;
-            }
-        }
+	    {
+		e.printStackTrace();
+		return ""+e;
+	    }
+	}
     }
 
-    
+
     class OneTimeContainer extends Thread
     {
-	    private OneTimeSchedule oneTimeSchedules[] = new OneTimeSchedule[]
-		    {
-		    new OneTimeSchedule(1, -1),
-		    new OneTimeSchedule(2, -1),
-		    new OneTimeSchedule(3, -1),
-		    new OneTimeSchedule(4, -1),
-		    new OneTimeSchedule(5, -1),
-		    new OneTimeSchedule(6, -1),
-		    new OneTimeSchedule(7, -1),
-		    new OneTimeSchedule(8, -1),
-		    };
-	    
-	    public OneTimeContainer()
-	    {		
-		mMask = 0;
-	    }
-	    
-	    public volatile boolean mShutdownRequested = false;
-	    
-	    @Override
-	    public void run() 
-	    {
-		try
+	private OneTimeSchedule oneTimeSchedules[] = new OneTimeSchedule[]
 		{
-		    while (true) //(!mShutdownRequested )
-		    {
-			long millis = (Calendar.getInstance().getTimeInMillis()%1000);
-			long sleeptime = 1000-millis;
-			try { Thread.sleep(sleeptime); } catch (InterruptedException e) {}
-			if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: calling updateMask");
-			boolean rc = updateMask();
-			if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: updateMask returned " + rc);
-		    }
-		}
-		catch (Exception e)
+		new OneTimeSchedule(1, -1),
+		new OneTimeSchedule(2, -1),
+		new OneTimeSchedule(3, -1),
+		new OneTimeSchedule(4, -1),
+		new OneTimeSchedule(5, -1),
+		new OneTimeSchedule(6, -1),
+		new OneTimeSchedule(7, -1),
+		new OneTimeSchedule(8, -1),
+		};
+
+	public OneTimeContainer()
+	{		
+	    mMask = 0;
+	}
+
+	public volatile boolean mShutdownRequested = false;
+
+	@Override
+	public void run() 
+	{
+	    try
+	    {
+		while (true) //(!mShutdownRequested )
 		{
-		    System.err.println("oneTimeSchedules: " + e);
+		    long millis = (Calendar.getInstance().getTimeInMillis()%1000);
+		    long sleeptime = 1000-millis;
+		    try { Thread.sleep(sleeptime); } catch (InterruptedException e) {}
+		    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: calling updateMask");
+		    boolean rc = updateMask();
+		    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: updateMask returned " + rc);
 		}
-		System.err.println("oneTimeSchedules: *************  at end of run() ************* ");
-	    };
-	    
-	    public OneTimeContainer addTime(int no, int secs)
-	    {
-		synchronized (this)
-                {	            
-		    oneTimeSchedules[no-1].addTimeX(secs);
-		    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: addTime(" + no + "," + secs + ")");
-		    updateMask();
-		    updateChangeTime(); // for sure - something changed. updateMask() will do it only if mask changed
-		    return this;
-                }
 	    }
-	    
-	    public OneTimeContainer setTime(int no, int secs)
+	    catch (Exception e)
 	    {
-		synchronized (this)
-                {	            
-		    oneTimeSchedules[no-1].setTimeX(secs);
-		    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: setTime(" + no + "," + secs + ")");
-		    updateMask();
+		System.err.println("oneTimeSchedules: " + e);
+	    }
+	    System.err.println("oneTimeSchedules: *************  at end of run() ************* ");
+	};
+
+	public OneTimeContainer addTime(int no, int secs)
+	{
+	    synchronized (this)
+	    {	            
+		oneTimeSchedules[no-1].addTimeX(secs);
+		if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: addTime(" + no + "," + secs + ")");
+		updateMask();
+		updateChangeTime(); // for sure - something changed. updateMask() will do it only if mask changed
+		return this;
+	    }
+	}
+
+	public OneTimeContainer setTime(int no, int secs)
+	{
+	    synchronized (this)
+	    {	            
+		oneTimeSchedules[no-1].setTimeX(secs);
+		if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: setTime(" + no + "," + secs + ")");
+		updateMask();
+		updateChangeTime();
+		return this;
+	    }
+	}
+
+	private long now()
+	{
+	    return Calendar.getInstance().getTimeInMillis();
+	}
+
+	private boolean updateMask()
+	{
+	    boolean notify  = false;
+	    int     newMask = 0;
+
+	    synchronized (this)
+	    {
+		int oldMask = mMask;
+		newMask = computeMask();
+
+		if ((notify = (oldMask!=newMask)))        	
+		{
+		    System.out.println("oneTimeSchedules: mask changed " + oldMask  + " -> " + newMask + ", this=" + this);
 		    updateChangeTime();
-		    return this;
-                }
+		}
+		mMask = newMask;
 	    }
 
-	    private long now()
+	    // do this outside the synchronized area to avoid lockup when
+	    // onOnetimeMaskChange needs longer than normal for execution
+	    if (notify)
 	    {
-		return Calendar.getInstance().getTimeInMillis();
+		GardenoidService.this.onOnetimeMaskChange(newMask);        	    
 	    }
-	    
-            private boolean updateMask()
-            {
-        	boolean notify  = false;
-        	int     newMask = 0;
-        	
-        	synchronized (this)
-        	{
-        	    int oldMask = mMask;
-        	    newMask = computeMask();
-        	    
-        	    if ((notify = (oldMask!=newMask)))        	
-        	    {
-        		System.out.println("oneTimeSchedules: mask changed " + oldMask  + " -> " + newMask + ", this=" + this);
-        		updateChangeTime();
-        	    }
-        	    mMask = newMask;
-        	}
-        	
-        	// do this outside the synchronized area to avoid lockup when
-        	// onOnetimeMaskChange needs longer than normal for execution
-        	if (notify)
-        	{
-	            GardenoidService.this.onOnetimeMaskChange(newMask);        	    
-        	}
 
-        	return notify;
-            }
-            
-            private void updateChangeTime()
-            {
-        	mLastChange = now();
-            }
-            
-            public int getMask()
-            {
-        	return mMask;
-            }
-            
-            private int computeMask()
-            {
-	        int  mask = 0;	        
-	        long nowUnixtime = DAO.nowUnixtime();
-	        for (int i=7; i>=0; i--)
-	        {
-	            mask<<=1;
-		    if (oneTimeSchedules[i].isActiveX(nowUnixtime))
-		    {
-			mask|=1;
-		    }
-	        }
+	    return notify;
+	}
 
-	        return mask;
-            }
+	private void updateChangeTime()
+	{
+	    mLastChange = now();
+	}
 
-	    public OneTimeContainer stop(int no)
+	public int getMask()
+	{
+	    return mMask;
+	}
+
+	private int computeMask()
+	{
+	    int  mask = 0;	        
+	    long nowUnixtime = DAO.nowUnixtime();
+	    for (int i=7; i>=0; i--)
 	    {
-		synchronized(this)
+		mask<<=1;
+		if (oneTimeSchedules[i].isActiveX(nowUnixtime))
 		{
+		    mask|=1;
+		}
+	    }
+
+	    return mask;
+	}
+
+	public OneTimeContainer stop(int no)
+	{
+	    synchronized(this)
+	    {
 		oneTimeSchedules[no-1].stopX();
 		if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: stop(" + no + ")");
 		updateMask();
 		return this;
-		}
 	    }
+	}
 
-	    public String toJson(int no)
-	    {
-		return oneTimeSchedules[no-1].toJsonX();
-	    }
+	public String toJson(int no)
+	{
+	    return oneTimeSchedules[no-1].toJsonX();
+	}
 
-	    public String toJson(long nowUnixtime)
-	    {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[\n");
-		try
-		{		    
-		    for (int no=1; no<=mOneTimeContainer.size(); no++)
-		    {
-			sb
-			.append(1==no ? "" : ",\n")
-			.append("{ \"no\":").append(no)
-			.append(",\"left\":").append(getSecondsLeft(no, nowUnixtime))
-			.append(",\"end\":").append(getEndtimeUnix(no))
-			.append(",\"active\":").append(isActive(no, nowUnixtime))
-			.append("}");
-		    }
-		}
-		catch (Exception e)
+	public String toJson(long nowUnixtime)
+	{
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("[\n");
+	    try
+	    {		    
+		for (int no=1; no<=mOneTimeContainer.size(); no++)
 		{
-		    e.printStackTrace();
+		    sb
+		    .append(1==no ? "" : ",\n")
+		    .append("{ \"no\":").append(no)
+		    .append(",\"left\":").append(getSecondsLeft(no, nowUnixtime))
+		    .append(",\"end\":").append(getEndtimeUnix(no))
+		    .append(",\"active\":").append(isActive(no, nowUnixtime))
+		    .append("}");
 		}
-		sb.append("\n]");
-		return sb.toString();
 	    }
-
-
-	    private Object isActive(int no, long nowUnixtime)
-            {
-		return oneTimeSchedules[no-1].isActiveX(nowUnixtime);
-            }
-
-	    public int size()
-            {
-	        return oneTimeSchedules.length;
-            }
-
-	    public long getSecondsLeft(int no, long nowUnixtime)
-            {	        
-		return oneTimeSchedules[no-1].getSecondsLeftX(nowUnixtime);
-            }
-
-	    public long getEndtimeUnix(int no)
-            {
-		return oneTimeSchedules[no-1].endtimeUnix;
-            }
-	    
-	    public long getLastChangeTime()
+	    catch (Exception e)
 	    {
-		//System.out.println("oneTimeSchedules: getLastChangeTime: mask=" + mMask);
-		return mLastChange;
+		e.printStackTrace();
 	    }
+	    sb.append("\n]");
+	    return sb.toString();
+	}
 
-	    // volatile: mMask is set by one thread but read by another one
-	    private volatile int mMask = 0;
-	    // same for last change date
-	    private volatile long mLastChange = -1;
+
+	private Object isActive(int no, long nowUnixtime)
+	{
+	    return oneTimeSchedules[no-1].isActiveX(nowUnixtime);
+	}
+
+	public int size()
+	{
+	    return oneTimeSchedules.length;
+	}
+
+	public long getSecondsLeft(int no, long nowUnixtime)
+	{	        
+	    return oneTimeSchedules[no-1].getSecondsLeftX(nowUnixtime);
+	}
+
+	public long getEndtimeUnix(int no)
+	{
+	    return oneTimeSchedules[no-1].endtimeUnix;
+	}
+
+	public long getLastChangeTime()
+	{
+	    //System.out.println("oneTimeSchedules: getLastChangeTime: mask=" + mMask);
+	    return mLastChange;
+	}
+
+	// volatile: mMask is set by one thread but read by another one
+	private volatile int mMask = 0;
+	// same for last change date
+	private volatile long mLastChange = -1;
     }
 
-    
+
     private OneTimeContainer mOneTimeContainer = new OneTimeContainer();
     private AssetManager     mAssetManager;
     private TemplateEngine   mTemplateEngine;
@@ -368,19 +386,19 @@ public class GardenoidService extends Service
     public void onOnetimeMaskChange(int onetimeMask)
     {
 	int  mask = onetimeMask|mActiveStrandsMask;
-    	String command = String.format("M%x", mask);
-    	
-    	long t1 = Calendar.getInstance().getTimeInMillis();    		
-	mCmdQueue.send(command, false);
-    	long t2 = Calendar.getInstance().getTimeInMillis();
-    	long delta = t2-t1;
-    	
-    	if (delta>500)
-    	{
-    	    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: mCmdQueue.send took " + delta + " ms");
-    	}
+
+	long t1 = Calendar.getInstance().getTimeInMillis();    		
+	sendEffectiveMaskToControllerAndActivity(mask);	
+	long t2 = Calendar.getInstance().getTimeInMillis();
+	
+	long delta = t2-t1;
+
+	if (delta>500)
+	{
+	    if (DEBUG_ONETIME_CONTAINER) System.out.println("sendEffectiveMaskToControllerAndActivity took " + delta + " ms");
+	}	
     }
-    
+
 
     @Override
     public boolean onUnbind(Intent intent) 
@@ -641,8 +659,7 @@ public class GardenoidService extends Service
 		try	    
 		{
 		    int mask = mOneTimeContainer.getMask()|mActiveStrandsMask;			    
-		    String command = String.format("M%x", mask);
-		    cmd = mCmdQueue.send(command, false /* do NOT wait */);
+		    cmd = sendEffectiveMaskToControllerAndActivity(mask);
 		}
 		catch (Exception e)
 		{
@@ -696,28 +713,28 @@ public class GardenoidService extends Service
 	    }
 	}
 
-        private List<Schedule> getActiveSchedulesWithRetry()
-        {
-            Date now = Calendar.getInstance().getTime();
+	private List<Schedule> getActiveSchedulesWithRetry()
+	{
+	    Date now = Calendar.getInstance().getTime();
 	    List<Schedule> all = null;
 	    for (int trial=0; trial<10; trial++)
 	    {
-	        try
-	        {
-	            all = mDao.getActiveSchedules(now);
-	        }
-	        catch (IllegalStateException e)
-	        {
-	            try { U.mSleep(20*trial); } catch (Exception ex) {}
-	        }
+		try
+		{
+		    all = mDao.getActiveSchedules(now);
+		}
+		catch (IllegalStateException e)
+		{
+		    try { U.mSleep(20*trial); } catch (Exception ex) {}
+		}
 	    }
-	    
+
 	    if (null==all)
 	    {
-	        log(new RuntimeException("Failed to get active schedules"));
+		log(new RuntimeException("Failed to get active schedules"));
 	    }
 	    return all;
-        }
+	}
 
 	/*
 	private String toIdString(List<Schedule> on)
@@ -825,8 +842,14 @@ public class GardenoidService extends Service
 	try
 	{
 	    rc = super.onStartCommand(intent, flags, startId);
+
+	    String action = (null==intent) ? "none(no intent)" : intent.getAction();
+
 	    // TODO Auto-generated method stub
-	    Toast.makeText(getApplicationContext(), "Service Working", Toast.LENGTH_SHORT).show();
+	    Toast.makeText(getApplicationContext(), "Service Working, action=" + action, Toast.LENGTH_LONG).show();
+
+	    Notification notification = getCompatNotification();
+	    startForeground(4711, notification);
 
 	    try
 	    {
@@ -836,7 +859,6 @@ public class GardenoidService extends Service
 		    System.err.println("No DAO available in onStartCommand");
 		    dao = new DAO(this);
 		}
-		String action = (null==intent) ? "none(no intent)" : intent.getAction();
 		dao.addEvent(new Event(mActiveStrandsMask, "onStartCommand", "id", startId, "action", action));
 	    }
 	    catch (Exception e)
@@ -862,10 +884,30 @@ public class GardenoidService extends Service
     }
 
 
+    private Notification getCompatNotification()
+    {
+	NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+	builder.setSmallIcon(R.drawable.ic_launcher)
+	.setContentTitle("Gardenoid service started")
+	.setTicker("Service active")
+	.setWhen(System.currentTimeMillis());
+	Intent startIntent = new Intent(getApplicationContext(), GardenoidActivity.class);
+	startIntent.setAction(ACTION_NOTIFICATION);
+
+	PendingIntent contentIntent = PendingIntent.getActivity(this, 4718, startIntent, 0);
+
+
+	builder.setContentIntent(contentIntent);
+	Notification notification = builder.build();
+	return notification;
+    }
+
     public void setHandler(Handler handler)
     {
 	mHandler = handler;
 	//mHandler.obtainMessage(MSG_STATUS, -1, -1, "Hello!").sendToTarget();
+	int mask = mOneTimeContainer.getMask()|mActiveStrandsMask;			    
+	sendEffectiveMaskToControllerAndActivity(mask);
     }
 
 
@@ -951,6 +993,7 @@ public class GardenoidService extends Service
 	}
     }
 
+    private static final boolean ADD_DEBUG_EVENTS = false;
 
     public void onConnectionFailed(ConnectThread connectThread, String string, BluetoothDevice device)
     {
@@ -962,11 +1005,11 @@ public class GardenoidService extends Service
 
 	    if (string.contains("discovery failed"))
 	    {
-		 // do not log more often than every 5 minutes
+		// do not log more often than every 5 minutes
 		if (mLastServiceDiscoveryFailureEventLogged<1 || DAO.nowUnixtime()-mLastServiceDiscoveryFailureEventLogged<300)
 		{
 		    mLastServiceDiscoveryFailureEventLogged = DAO.nowUnixtime(); 
-		    mDao.addEvent(new Event(mActiveStrandsMask, "onConnectionFailed", "name", name, "addr", addr, "error", string));
+		    if (ADD_DEBUG_EVENTS) mDao.addEvent(new Event(mActiveStrandsMask, "onConnectionFailed", "name", name, "addr", addr, "error", string));
 		}
 	    }
 	}
@@ -1041,7 +1084,7 @@ public class GardenoidService extends Service
 	    default:
 		System.err.println("ERROR: Invalid line: " + line);
 	    }
-	    	    
+
 	    mCmdQueue.cleanupExpired();
 	}
 	catch (Exception e)
@@ -1209,11 +1252,11 @@ public class GardenoidService extends Service
 		return error.toString();
 	    }
 
-//	    public void reset()
-//	    {
-//		success = new StringBuilder();
-//		error   = new StringBuilder(); 
-//	    }
+	    //	    public void reset()
+	    //	    {
+	    //		success = new StringBuilder();
+	    //		error   = new StringBuilder(); 
+	    //	    }
 
 	    public void setReady()
 	    {
@@ -1231,10 +1274,10 @@ public class GardenoidService extends Service
 		return ready;
 	    }
 
-//	    public String getRef()
-//	    {
-//		return ref;
-//	    }
+	    //	    public String getRef()
+	    //	    {
+	    //		return ref;
+	    //	    }
 
 	    public void addError(String string)
 	    {
@@ -1253,7 +1296,7 @@ public class GardenoidService extends Service
 		success.append(string);	    
 	    }	
 
-//	    public String        ref;
+	    //	    public String        ref;
 	    public StringBuilder success = new StringBuilder();
 	    public StringBuilder error   = new StringBuilder();
 	    private long createTime;
@@ -1264,9 +1307,9 @@ public class GardenoidService extends Service
 	    }
 
 	    public long age(long now)
-            {
+	    {
 		return now-createTime;
-            }
+	    }
 	}
 
 	private HashMap<String, Command> map = new HashMap<String, Command>();
@@ -1282,7 +1325,7 @@ public class GardenoidService extends Service
 	}	
 
 	public void cleanupExpired()
-        {
+	{
 	    LinkedList<String> keysToRemove = new LinkedList<String>();
 	    long now = DAO.nowUnixtime();
 	    for (String key : map.keySet())
@@ -1298,19 +1341,19 @@ public class GardenoidService extends Service
 	    {
 		map.remove(key);
 	    }
-        }
+	}
 
-//	public final long now()
-//	{
-//	    return Calendar.getInstance().getTimeInMillis();
-//	}
-//	
+	//	public final long now()
+	//	{
+	//	    return Calendar.getInstance().getTimeInMillis();
+	//	}
+	//	
 	public Command send(String name, boolean doWait, String ... args)
 	{
 	    cleanupExpired();
-	    
+
 	    String  ref = createRef();	    
-	    
+
 	    Command cmd = new Command(name, ref);
 	    try
 	    {
@@ -1384,7 +1427,7 @@ public class GardenoidService extends Service
 	}
 
 	public Object toJson()
-        {
+	{
 	    StringBuilder sb = new StringBuilder();
 	    boolean first = true;
 	    sb.append("{ \"map\": [\n");
@@ -1396,7 +1439,7 @@ public class GardenoidService extends Service
 	    }
 	    sb.append("\n]");
 	    return sb.toString();
-        }
+	}
     }
 
     public class Binder extends android.os.Binder 
@@ -1456,7 +1499,7 @@ public class GardenoidService extends Service
 	    return null;
 	}
 
-	private Response serveRest(IHTTPSession session, String resource, Map<String, String> params)	
+	private Response serveRest(IHTTPSession session, String resource, Map<String, String> params) throws ParseException	
 	{
 	    StringBuilder msg      = new StringBuilder();	
 
@@ -1465,14 +1508,69 @@ public class GardenoidService extends Service
 		Set<BluetoothDevice> pairedDevices = mBtAdapter.getBondedDevices();
 		listDevices(pairedDevices, mVisibleDevices, msg);
 	    }
+	    else if (resource.startsWith("/weather/compact"))
+	    {
+		try
+		{
+		    if ("yes".equals(params.get("confirm")))
+		    { 
+			System.out.println("Fetching all weather conditions from database");			
+			List<Weather> list = mDao.getAllWeathers(); 
+			System.out.println("Fetched " + (null==list ? 0 : list.size()) + " weather conditions from database");
+
+			List<Long> ids = new ArrayList<Long>();
+
+			Weather last = null;
+			if (null!=list) for (Weather w : list)
+			{
+			    Calendar prev = (null==last) ? null : last.getDate();
+			    Calendar curr = w.getDate();
+
+			    if (last!=null && DAO.sameDay(prev, curr))
+			    {				    
+				long delta = (curr.getTimeInMillis()-prev.getTimeInMillis())/1000; // seconds
+				if (delta<6*60*60) // less than 6 hours between two entries?
+				{
+				    ids.add(w.getId()); // yes? mark id to be deleted
+				    System.out.println("Delete: " + w);
+				}
+				else
+				{
+				    System.out.println("Keep: " + w);
+				    last = w; // keep entry 
+				}
+			    }	
+			    else
+			    {
+				last = w;
+			    }
+			}
+			System.out.println("Deleting " + ids.size() + " weather conditions from database");
+			int rows = mDao.deleteWeather(ids);
+
+			String json = new JSONObject().put("success", true).put("rows", rows).toString();
+			msg.append(json);		    
+		    }
+		    else
+		    {
+			String json = new JSONObject().put("success", false).put("reason", "no confirmation").toString();
+			msg.append(json);		    
+		    }
+		}
+		catch (JSONException e)
+		{
+		    msg.append(e);
+		}
+	    }
 	    else if (resource.startsWith("/events/purge"))
 	    {		 
 		try
 		{
 		    if ("yes".equals(params.get("confirm")))
 		    {
-			mDao.purgeEvents();
-			String json = new JSONObject().put("success", true).toString();
+			int rows = mDao.purgeEvents();
+			mDao.addEvent(new Event("Purged"));
+			String json = new JSONObject().put("success", true).put("rows", rows).toString();
 			msg.append(json);
 		    }
 		    else
@@ -1559,13 +1657,13 @@ public class GardenoidService extends Service
 		long nowUnixtime = DAO.nowUnixtime();
 		long mask = mOneTimeContainer.getMask();
 		msg
-		  .append("{")
-		  .append( " \"now\": ").append(nowUnixtime)
-		  .append(", \"mask\": ").append(mask)
-		  .append(", \"onetime\": ").append(mOneTimeContainer.toJson(nowUnixtime))
-		  .append("}");
+		.append("{")
+		.append( " \"now\": ").append(nowUnixtime)
+		.append(", \"mask\": ").append(mask)
+		.append(", \"onetime\": ").append(mOneTimeContainer.toJson(nowUnixtime))
+		.append("}");
 		@SuppressWarnings("unused")
-                String dbg = msg.toString(); 
+		String dbg = msg.toString(); 
 	    }
 	    else if (resource.startsWith("/onetime/add"))
 	    {
@@ -1712,6 +1810,10 @@ public class GardenoidService extends Service
 		    return r;
 		}
 	    }
+	    else if (resource.startsWith("/db/stats"))
+	    {
+		msg.append(mDao.getStats());		
+	    }
 	    else if (resource.startsWith("/status"))
 	    {
 		String oldFingerprint = "" + params.get("fingerprint");    
@@ -1783,18 +1885,34 @@ public class GardenoidService extends Service
 	    }
 	    else if (resource.startsWith("/weather/list"))
 	    {
-		List<Weather> list = mDao.getAllWeathers();
-		StringBuilder sb = new StringBuilder();
+		String day    = params.get("day");
+		//String browse = params.get("browse");
+
+		//		int offset = 0;
+		//		if ("next".equals(browse))
+		//		{
+		//		    day = adjustDay(day, 1);
+		//		}
+		//		else if ("prev".equals(browse))
+		//		{
+		//		    day = adjustDay(day,- 1);
+		//		}
+		//		params.put("day", day);
+
+		List<Weather> list = (null==day) ? mDao.getAllWeathers() : mDao.getAllWeathers(day);
+		StringBuilder sb   = new StringBuilder();
 		sb.append("{ \"weather\" :\n[\n");
 		boolean first = true;
-		for (Weather w : list)
+		if (null!=list) for (Weather w : list)
 		{
 		    sb.append(first ? "" : ",\n");
 		    sb.append(w.toJson());
 		    first = false;
 		}
-		sb.append("\n]\n}");
-		Response r = new Response(STATUS_301, CT_TEXT_JSON, sb.toString());
+		sb.append("\n], \n");
+		sb.append("\"day\" : ").append(U.escapedOrNull(day));
+		sb.append("}");
+		Response r = new Response(STATUS_200, CT_TEXT_JSON, sb.toString());
 		r.addHeader("Pragma", "no-cache");
 		return r;
 	    }
@@ -1803,11 +1921,12 @@ public class GardenoidService extends Service
 		List<com.apdlv.gardenoid.db.Forecast> list = mDao.getAllForecasts();
 		StringBuilder sb = new StringBuilder();
 		sb.append("{ \"forecasts\" :\n[\n");
+		long nowUnixtime = DAO.nowUnixtime();
 		boolean first = true;
 		for (com.apdlv.gardenoid.db.Forecast w : list)
 		{
 		    sb.append(first ? "" : ",\n");
-		    sb.append(w.toJson());
+		    sb.append(w.toJson(nowUnixtime));
 		    first = false;
 		}
 		sb.append("\n]\n}");
@@ -1879,6 +1998,17 @@ public class GardenoidService extends Service
 	    return r;
 	}
 
+	private String adjustDay(String day, int i) throws ParseException
+	{
+	    Date date = U.YYYYMMDD.parse(day);
+	    Calendar c = Calendar.getInstance();
+	    c.setTime(date);
+	    c.add(Calendar.DAY_OF_MONTH, i);
+
+	    day = U.YYYYMMDD.format(c.getTime());
+	    return day;
+	}
+
 	@Override 
 	public Response serve(IHTTPSession session) 
 	{
@@ -1896,297 +2026,301 @@ public class GardenoidService extends Service
 	final private String FAVICON_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=";
 	final private byte[] FAVICON_DATA = Base64.decode(FAVICON_B64,Base64.DEFAULT);
 
-	    public Response serveUnsecurely(IHTTPSession session) 
+	public Response serveUnsecurely(IHTTPSession session) throws ParseException 
+	{
+	    Method method = session.getMethod();
+	    String uri    = session.getUri();            
+
+	    if (uri.startsWith("/favicon.ico"))
 	    {
-		Method method = session.getMethod();
-		String uri    = session.getUri();            
+		return new Response(STATUS_200, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
+	    }
 
-		if (uri.startsWith("/favicon.ico"))
+	    System.out.println("serve: " + method + " '" + uri + "' ");	    
+	    if (uri.startsWith("/rest"))
+	    {
+		String resource = uri.substring(5);        	
+		return serveRest(session, resource, session.getParms());
+	    }
+	    else if (uri.startsWith("/api"))
+	    {		
+		StringBuilder msg = new StringBuilder();	    
+		msg.append("<html><body>\n");
+		msg.append("<a href=\"/\">[MAIN]</a>\n");
+		msg.append("<hr/>\n");
+
+		String resources[] = 
+		    { 
+			"devices/list",  
+			"events/list",  
+			"events/purge?confirm=no",  
+			"discover/start", "discover/cancel", "discover/toggle",
+			"queue/list",
+			"onetime/list",
+			"onetime/add?no=1&secs=60",
+			"onetime/set?no=2&secs=5",
+			"onetime/stop?no=1",
+			"schedules/list",
+			"schedules/active",
+			"schedules/get?id=17",
+			"schedules/modify?action=del&id=1",
+			"schedules/modify?action=add&strandMask=1&startTime=2300&endTime=2400&duration=0015&interval=0100&idCondition=103&conditionArgs=30&idException=0&exceptionArgs=&dayMask=1&monthMask=1",
+			"status",
+			"db/stats",
+			"weather/list",
+			"weather/compact?confirm=no",
+			"forecast/list",
+			"forecast/get?p=GMXX0018&u=c", // [p]lace code, temperature [u]nit
+			"command/I", "command/S", "command/H",
+		    };		
+
+		for (String res : resources)
 		{
-		    return new Response(STATUS_200, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
-		}
-
-		System.out.println("serve: " + method + " '" + uri + "' ");	    
-		if (uri.startsWith("/rest"))
-		{
-		    String resource = uri.substring(5);        	
-		    return serveRest(session, resource, session.getParms());
-		}
-		else if (uri.startsWith("/api"))
-		{		
-		    StringBuilder msg = new StringBuilder();	    
-		    msg.append("<html><body>\n");
-		    msg.append("<a href=\"/\">[MAIN]</a>\n");
-		    msg.append("<hr/>\n");
-
-		    String resources[] = 
-			{ 
-			    "devices/list",  
-			    "events/list",  
-			    "events/purge?confirm=no",  
-			    "discover/start", "discover/cancel", "discover/toggle",
-			    "queue/list",
-			    "onetime/list",
-			    "onetime/add?no=1&secs=60",
-			    "onetime/set?no=2&secs=5",
-			    "onetime/stop?no=1",
-			    "schedules/list",
-			    "schedules/active",
-			    "schedules/get?id=17",
-			    "schedules/modify?action=del&id=1",
-			    "schedules/modify?action=add&strandMask=1&startTime=2300&endTime=2400&duration=0015&interval=0100&idCondition=103&conditionArgs=30&idException=0&exceptionArgs=&dayMask=1&monthMask=1",
-			    "status",
-			    "weather/list",
-			    "forecast/list",
-			    "forecast/get?p=GMXX0018&u=c", // [p]lace code, temperature [u]nit
-			    "command/I", "command/S", "command/H",
-			};		
-
-		    for (String res : resources)
-		    {
-			msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
-		    }
-
-		    msg.append("<hr>\n");
-		    msg.append("Connect to:<br/>\n");
-
-		    msg.append("Paired:<br/>\n");
-		    for (BluetoothDevice d : mPairedDevices)
-		    {
-			String addr = d.getAddress();
-			String name = d.getName();
-			String res  = "device/select?addr=" + addr;
-			msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
-		    }
-
-		    msg.append("Visible:<br/>\n");
-		    for (BluetoothDevice d : mVisibleDevices)
-		    {
-			String addr = d.getAddress();
-			String name = d.getName();
-			String res  = "device/select?addr=" + addr;
-			msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
-		    }
-
-		    msg.append("<hr>\n");
-		    String res = "connection/stop"; 
 		    msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
-
-		    msg.append("</body></html>");
-		    return new NanoHTTPD.Response(STATUS_200, CT_TEXT_HTML, msg.toString());		
-		}
-		else if (uri.startsWith("/schedules/add"))
-		{
-		    Map<String, String> map = session.getParms();
-
-		    int strandMask = 0;
-		    for (int n=1; n<8; n++)
-		    {
-			Integer i = toInteger(map.get("strand"+n));
-			if (null!=i) strandMask|=i;
-		    }
-
-		    int dayMask = 0;
-		    for (int n=0; n<7; n++)
-		    {
-			Integer i = toInteger(map.get("day"+n));
-			if (null!=i) dayMask|=i;
-		    }
-
-		    int monthMask = 0;
-		    for (int n=1; n<12; n++)
-		    {
-			Integer i = toInteger(map.get("month"+n));
-			if (null!=i) monthMask|=i;
-		    }
-
-		    Integer startTime     = U.hh_mmToInt(map.get("start_time"));
-		    Integer endTime       = U.hh_mmToInt(map.get("end_time"));
-		    Integer interval      = U.hh_mmToInt(map.get("interval"));	
-		    Integer duration      = U.hh_mmToInt(map.get("duration"));	
-		    Integer idCondition   = toInteger(map.get("id_condition"));	
-		    Integer idException   = toInteger (map.get("id_exception"));
-		    String  conditionArgs = map.get("condition_args");	
-		    String  exceptionArgs = map.get("exception_args");
-
-		    Schedule schedule = new Schedule(strandMask, dayMask, monthMask, startTime, endTime, duration, interval, idCondition, conditionArgs, idException, exceptionArgs, false);
-		    long id = mDao.addSchedule(schedule);
-
-		    if (id>-1)
-		    {
-			Response r = new Response(STATUS_301, CT_TEXT_JSON, "{ \"success\" : true }");
-			r.addHeader("Refresh", "1; /");
-			return r;
-		    }
-		    else
-		    {
-			Response r = new Response(STATUS_500, CT_TEXT_JSON, "{ \"success\" : false }");
-			//r.addHeader("Refresh", "1; /schedules/add.html");
-			return r;        	    
-		    }
 		}
 
-		if (uri.endsWith(".gif"))
+		msg.append("<hr>\n");
+		msg.append("Connect to:<br/>\n");
+
+		msg.append("Paired:<br/>\n");
+		for (BluetoothDevice d : mPairedDevices)
 		{
-		    String expires = createExpirationDate();
-		    InputStream is = mTemplateEngine.getFile(uri);
-		    Response r = new Response(STATUS_200, CT_IMAGE_GIF, is);
-		    r.addHeader("Cache-Control", "Public");
-		    r.addHeader("Expires", expires);
+		    String addr = d.getAddress();
+		    String name = d.getName();
+		    String res  = "device/select?addr=" + addr;
+		    msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
+		}
+
+		msg.append("Visible:<br/>\n");
+		for (BluetoothDevice d : mVisibleDevices)
+		{
+		    String addr = d.getAddress();
+		    String name = d.getName();
+		    String res  = "device/select?addr=" + addr;
+		    msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
+		}
+
+		msg.append("<hr>\n");
+		String res = "connection/stop"; 
+		msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
+
+		msg.append("</body></html>");
+		return new NanoHTTPD.Response(STATUS_200, CT_TEXT_HTML, msg.toString());		
+	    }
+	    else if (uri.startsWith("/schedules/add"))
+	    {
+		Map<String, String> map = session.getParms();
+
+		int strandMask = 0;
+		for (int n=1; n<8; n++)
+		{
+		    Integer i = toInteger(map.get("strand"+n));
+		    if (null!=i) strandMask|=i;
+		}
+
+		int dayMask = 0;
+		for (int n=0; n<7; n++)
+		{
+		    Integer i = toInteger(map.get("day"+n));
+		    if (null!=i) dayMask|=i;
+		}
+
+		int monthMask = 0;
+		for (int n=1; n<12; n++)
+		{
+		    Integer i = toInteger(map.get("month"+n));
+		    if (null!=i) monthMask|=i;
+		}
+
+		Integer startTime     = U.hh_mmToInt(map.get("start_time"));
+		Integer endTime       = U.hh_mmToInt(map.get("end_time"));
+		Integer interval      = U.hh_mmToInt(map.get("interval"));	
+		Integer duration      = U.hh_mmToInt(map.get("duration"));	
+		Integer idCondition   = toInteger(map.get("id_condition"));	
+		Integer idException   = toInteger (map.get("id_exception"));
+		String  conditionArgs = map.get("condition_args");	
+		String  exceptionArgs = map.get("exception_args");
+
+		Schedule schedule = new Schedule(strandMask, dayMask, monthMask, startTime, endTime, duration, interval, idCondition, conditionArgs, idException, exceptionArgs, false);
+		long id = mDao.addSchedule(schedule);
+
+		if (id>-1)
+		{
+		    Response r = new Response(STATUS_301, CT_TEXT_JSON, "{ \"success\" : true }");
+		    r.addHeader("Refresh", "1; /");
 		    return r;
-		    
-		}            
-		if (uri.endsWith(".png"))
-		{
-		    InputStream is = mTemplateEngine.getFile(uri);
-		    String expires = createExpirationDate();
-		    Response r = new Response(STATUS_200, CT_IMAGE_PNG, is);
-		    r.addHeader("Cache-Control", "Public");
-		    r.addHeader("Expires", expires);
-		    return r;
-		}            
-		if (uri.endsWith(".jpg"))
-		{
-		    InputStream is = mTemplateEngine.getFile(uri);
-		    String expires = createExpirationDate();
-		    Response r = new Response(STATUS_200, CT_IMAGE_JPG, is);
-		    r.addHeader("Cache-Control", "Public");
-		    r.addHeader("Expires", expires);
-		    return r;
-		}
-
-		Map<String, String> params = session.getParms();
-
-		String page     = null;
-		String template = uri; 
-
-		if (template.equals("/js/conditionals.js"))
-		{
-		    String script = "var conditionals = " + Conditional.CONDITIONALS_JSON + ";";
-		    String expires = createExpirationDate();
-
-		    Response r = new Response(STATUS_200, CT_JAVASCRIPT, script);
-		    r.addHeader("Cache-Control", "Public");
-		    r.addHeader("Expires", expires);
-		    return r;
-		}
-
-		if (template.endsWith(".js"))
-		{
-		    System.out.println("serve: fetching java script " + template);
-		    page = mTemplateEngine.getPage(template);
-		    System.out.println("serve: delivering java script " + template);
-		    if (null!=page)
-		    {
-			String expires = createExpirationDate();
-
-			Response r = new Response(STATUS_200, CT_JAVASCRIPT, page);
-			r.addHeader("Cache-Control", "Public");
-			r.addHeader("Expires", expires);
-			return r;
-		    }
-		}
-		else if (template.endsWith(".css"))
-		{
-		    System.out.println("serve: fetching CSS file " + template);
-		    page = mTemplateEngine.getPage(template);
-		    System.out.println("serve: delivering java script " + template);
-		    if (null!=page)
-		    {
-			String expires = createExpirationDate();
-			
-			Response r = new Response(STATUS_200, CT_CSS, page);
-			r.addHeader("Cache-Control", "Public");
-			r.addHeader("Expires", expires);			
-			return r; 
-		    }
-		}
-
-		if (template.equals("/schedules/edit.html"))
-		{
-		    System.out.println("serve: fetching session parms");
-
-		    String  action = params.get("action");
-		    Integer id     = toInteger(params.get("id"));
-
-		    Schedule s = null;
-		    if (equals(action, "add"))
-		    {
-			s = Schedule.TEMPLATE;
-		    }
-		    else if (equals(action, "edit"))
-		    {
-			s = (null==id) ? null : mDao.getSchedule(id);        	    
-		    }
-
-		    if (null==s)
-		    {
-			return new Response(STATUS_404, CT_TEXT_PLAIN, "Schedule ID " + id + " not found");
-		    }
-
-		    Map<String, String> map = new HashMap<String, String>(3); 
-		    map.put("action", action);
-		    map.put("id", ""+id);
-		    map.put("conditionals", Conditional.CONDITIONALS_JSON);        	
-
-		    System.out.println("serve: rendering template");
-		    page = mTemplateEngine.render(template, map);
-		    System.out.println("serve: sending page");
-		    return new Response(STATUS_200, CT_TEXT_HTML, page);
-		}
-
-		if ("/".equals(uri) || "".equals(uri)) 
-		{ 
-		    uri="/index.html";
-		}
-
-		Map<String, String> map = this.toMap();
-		map.put("conditionals", Conditional.CONDITIONALS_JSON);        	
-
-		page = mTemplateEngine.render(uri, map);
-		if (null==page)
-		{            
-		    page = mTemplateEngine.render("index.html", map);
-		}
-
-		if (null==page)
-		{
-		    Response r = new Response(STATUS_404, CT_TEXT_HTML, "Not found");
-		    r.addHeader("Connection", "close");
-		    return r; 
 		}
 		else
 		{
-		    Response r =  new Response(STATUS_200, CT_TEXT_HTML, page);
-		    r.addHeader("Connection", "close");
-		    return r;
-		}            
+		    Response r = new Response(STATUS_500, CT_TEXT_JSON, "{ \"success\" : false }");
+		    //r.addHeader("Refresh", "1; /schedules/add.html");
+		    return r;        	    
+		}
 	    }
 
-
-            private String createExpirationDate()
-            {
-        	Calendar calendar = Calendar.getInstance();
-        	calendar.add(Calendar.MINUTE, 30);
-        	SimpleDateFormat dateFormat = new SimpleDateFormat(
-        		"EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        	dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        	return dateFormat.format(calendar.getTime());
-            }
-
-
-	    private void dump(String category, Map<String, String> map, StringBuilder sb)
+	    if (uri.endsWith(".gif"))
 	    {
-		try
+		String expires = createExpirationDate();
+		InputStream is = mTemplateEngine.getFile(uri);
+		Response r = new Response(STATUS_200, CT_IMAGE_GIF, is);
+		r.addHeader("Cache-Control", "Public");
+		r.addHeader("Expires", expires);
+		return r;
+
+	    }            
+	    if (uri.endsWith(".png"))
+	    {
+		InputStream is = mTemplateEngine.getFile(uri);
+		String expires = createExpirationDate();
+		Response r = new Response(STATUS_200, CT_IMAGE_PNG, is);
+		r.addHeader("Cache-Control", "Public");
+		r.addHeader("Expires", expires);
+		return r;
+	    }            
+	    if (uri.endsWith(".jpg"))
+	    {
+		InputStream is = mTemplateEngine.getFile(uri);
+		String expires = createExpirationDate();
+		Response r = new Response(STATUS_200, CT_IMAGE_JPG, is);
+		r.addHeader("Cache-Control", "Public");
+		r.addHeader("Expires", expires);
+		return r;
+	    }
+
+	    Map<String, String> params = session.getParms();
+
+	    String page     = null;
+	    String template = uri; 
+
+	    if (template.equals("/js/conditionals.js"))
+	    {
+		String script = "var conditionals = " + Conditional.CONDITIONALS_JSON + ";";
+		String expires = createExpirationDate();
+
+		Response r = new Response(STATUS_200, CT_JAVASCRIPT, script);
+		r.addHeader("Cache-Control", "Public");
+		r.addHeader("Expires", expires);
+		return r;
+	    }
+
+	    if (template.endsWith(".js"))
+	    {
+		System.out.println("serve: fetching java script " + template);
+		page = mTemplateEngine.getPage(template);
+		System.out.println("serve: delivering java script " + template);
+		if (null!=page)
 		{
-		    sb.append(new JSONObject().put(category, new JSONObject(map)).toString());
-		} 
-		catch (JSONException e)
+		    String expires = createExpirationDate();
+
+		    Response r = new Response(STATUS_200, CT_JAVASCRIPT, page);
+		    r.addHeader("Cache-Control", "Public");
+		    r.addHeader("Expires", expires);
+		    return r;
+		}
+	    }
+	    else if (template.endsWith(".css"))
+	    {
+		System.out.println("serve: fetching CSS file " + template);
+		page = mTemplateEngine.getPage(template);
+		System.out.println("serve: delivering java script " + template);
+		if (null!=page)
 		{
-		    log(e);
+		    String expires = createExpirationDate();
+
+		    Response r = new Response(STATUS_200, CT_CSS, page);
+		    r.addHeader("Cache-Control", "Public");
+		    r.addHeader("Expires", expires);			
+		    return r; 
+		}
+	    }
+
+	    if (template.equals("/schedules/edit.html"))
+	    {
+		System.out.println("serve: fetching session parms");
+
+		String  action = params.get("action");
+		Integer id     = toInteger(params.get("id"));
+
+		Schedule s = null;
+		if (equals(action, "add"))
+		{
+		    s = Schedule.TEMPLATE;
+		}
+		else if (equals(action, "edit"))
+		{
+		    s = (null==id) ? null : mDao.getSchedule(id);        	    
 		}
 
-		/*
+		if (null==s)
+		{
+		    return new Response(STATUS_404, CT_TEXT_PLAIN, "Schedule ID " + id + " not found");
+		}
+
+		Map<String, String> map = new HashMap<String, String>(3); 
+		map.put("action", action);
+		map.put("id", ""+id);
+		// TODO: check if this is still necessary (now generating conditionls.js) 
+		map.put("conditionals", Conditional.CONDITIONALS_JSON);        	
+
+		System.out.println("serve: rendering template");
+		page = mTemplateEngine.render(template, map);
+		System.out.println("serve: sending page");
+		return new Response(STATUS_200, CT_TEXT_HTML, page);
+	    }
+
+	    if ("/".equals(uri) || "".equals(uri)) 
+	    { 
+		uri="/index.html";
+	    }
+
+	    Map<String, String> map = this.toMap();
+	    map.put("conditionals", Conditional.CONDITIONALS_JSON);        	
+	    map.putAll(params);
+
+	    page = mTemplateEngine.render(uri, map);
+	    if (null==page)
+	    {            
+		page = mTemplateEngine.render("index.html", map);
+	    }
+
+	    if (null==page)
+	    {
+		Response r = new Response(STATUS_404, CT_TEXT_HTML, "Not found");
+		r.addHeader("Connection", "close");
+		return r; 
+	    }
+	    else
+	    {
+		Response r =  new Response(STATUS_200, CT_TEXT_HTML, page);
+		r.addHeader("Connection", "close");
+		return r;
+	    }            
+	}
+
+
+	private String createExpirationDate()
+	{
+	    Calendar calendar = Calendar.getInstance();
+	    calendar.add(Calendar.MINUTE, 30);
+	    SimpleDateFormat dateFormat = new SimpleDateFormat(
+		    "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+	    dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+	    return dateFormat.format(calendar.getTime());
+	}
+
+
+	private void dump(String category, Map<String, String> map, StringBuilder sb)
+	{
+	    try
+	    {
+		sb.append(new JSONObject().put(category, new JSONObject(map)).toString());
+	    } 
+	    catch (JSONException e)
+	    {
+		log(e);
+	    }
+
+	    /*
             sb.append("\"").append(category).append("\" : ");
             if (null==map)
             {
@@ -2204,111 +2338,120 @@ public class GardenoidService extends Service
         	}
         	sb.append("}");
             }            
-		 */
-	    }
+	     */
+	}
 
 
-	    private Map<String, String> toMap()
-	    {            
-		Map<String, String> m = new HashMap<String, String>();
+	private Map<String, String> toMap()
+	{            
+	    Map<String, String> m = new HashMap<String, String>();
 
-		m.put("nonce",       ""+Math.random());
-		m.put("discovering", ""+isDiscovering());
-		m.put("connected",   ""+isConnected());
-		String[] nameAddr = getConnectedNameAndAddr();
-		if (null!=nameAddr)
-		{
-		    m.put("connectedName", nameAddr[0]);
-		    m.put("connectedAddr", nameAddr[0]);
-		}
-		return m;
-	    }
-
-
-	    private boolean equals(String a, String b)
+	    m.put("nonce",       ""+Math.random());
+	    m.put("discovering", ""+isDiscovering());
+	    m.put("connected",   ""+isConnected());
+	    String[] nameAddr = getConnectedNameAndAddr();
+	    if (null!=nameAddr)
 	    {
-		return null!=a && a.equals(b);
+		m.put("connectedName", nameAddr[0]);
+		m.put("connectedAddr", nameAddr[0]);
 	    }
+	    return m;
+	}
 
 
-	    private Integer toInteger(String string)
+	private boolean equals(String a, String b)
+	{
+	    return null!=a && a.equals(b);
+	}
+
+
+	private Integer toInteger(String string)
+	{
+	    try { return Integer.parseInt(string); } catch (Exception e) { return null; }
+	}
+
+
+	private BluetoothDevice findDevice(String address)
+	{
+	    for (BluetoothDevice d : mPairedDevices)
 	    {
-		try { return Integer.parseInt(string); } catch (Exception e) { return null; }
-	    }
-
-
-	    private BluetoothDevice findDevice(String address)
-	    {
-		for (BluetoothDevice d : mPairedDevices)
-		{
-		    if (d.getAddress().equals(address))
-		    {
-			if (d.getAddress().equals(address)) return d;
-		    }
-		}
-		for (BluetoothDevice d : mVisibleDevices)
+		if (d.getAddress().equals(address))
 		{
 		    if (d.getAddress().equals(address)) return d;
 		}
-		return null;
+	    }
+	    for (BluetoothDevice d : mVisibleDevices)
+	    {
+		if (d.getAddress().equals(address)) return d;
+	    }
+	    return null;
+	}
+
+
+	private void listDevices(Set<BluetoothDevice> pairedDevices, Set<BluetoothDevice> visibleDevices, StringBuilder msg)
+	{
+	    msg.append("{ \"devices\" : [");
+
+	    boolean first = true;
+	    for (BluetoothDevice d : pairedDevices)
+	    {
+		String name = d.getName();
+		name = (null==name) ? "null" : "\"" + name.replaceAll("\"", "\\\"") + "\"";
+		boolean visible = (null!=visibleDevices && visibleDevices.contains(d));
+		msg.append(first ? "\n" : ",\n");
+		msg.append(" {");        	
+		msg.append(" \"addr\" : \"").append(d.getAddress()).append("\",");
+		msg.append(" \"paired\" : ").append(true).append(", ");
+		msg.append(" \"visible\" : ").append(visible).append(", ");
+		msg.append(" \"name\" : ").append(name);
+		msg.append(" }");
+		first = false;
 	    }
 
-
-	    private void listDevices(Set<BluetoothDevice> pairedDevices, Set<BluetoothDevice> visibleDevices, StringBuilder msg)
+	    for (BluetoothDevice d : visibleDevices)
 	    {
-		msg.append("{ \"devices\" : [");
-
-		boolean first = true;
-		for (BluetoothDevice d : pairedDevices)
+		if (!isAddressContained(pairedDevices, d.getAddress()))
 		{
 		    String name = d.getName();
 		    name = (null==name) ? "null" : "\"" + name.replaceAll("\"", "\\\"") + "\"";
-		    boolean visible = (null!=visibleDevices && visibleDevices.contains(d));
 		    msg.append(first ? "\n" : ",\n");
-		    msg.append(" {");        	
+		    msg.append(" {");
 		    msg.append(" \"addr\" : \"").append(d.getAddress()).append("\",");
-		    msg.append(" \"paired\" : ").append(true).append(", ");
-		    msg.append(" \"visible\" : ").append(visible).append(", ");
+		    msg.append(" \"paired\" : ").append(false).append(",");
+		    msg.append(" \"visible\" : ").append(true).append(",");
 		    msg.append(" \"name\" : ").append(name);
 		    msg.append(" }");
 		    first = false;
 		}
-
-		for (BluetoothDevice d : visibleDevices)
-		{
-		    if (!isAddressContained(pairedDevices, d.getAddress()))
-		    {
-			String name = d.getName();
-			name = (null==name) ? "null" : "\"" + name.replaceAll("\"", "\\\"") + "\"";
-			msg.append(first ? "\n" : ",\n");
-			msg.append(" {");
-			msg.append(" \"addr\" : \"").append(d.getAddress()).append("\",");
-			msg.append(" \"paired\" : ").append(false).append(",");
-			msg.append(" \"visible\" : ").append(true).append(",");
-			msg.append(" \"name\" : ").append(name);
-			msg.append(" }");
-			first = false;
-		    }
-		}
-		msg.append("\n]}");
 	    }
-
-	    private boolean isAddressContained(Set<BluetoothDevice> devices, String address)
-	    {
-		for (BluetoothDevice d : devices)
-		{
-		    if (address.equalsIgnoreCase(d.getAddress()))
-		    {
-			return true;
-		    }
-		}	    
-		return false;
-	    }
-
+	    msg.append("\n]}");
 	}
 
-	private DAO mDao; 
-	private long lastForecastUpdate = -1;
-	private WeatherUpdateThread mUpdateThread = null; 
-	private long mLastServiceDiscoveryFailureEventLogged = -1;
+	private boolean isAddressContained(Set<BluetoothDevice> devices, String address)
+	{
+	    for (BluetoothDevice d : devices)
+	    {
+		if (address.equalsIgnoreCase(d.getAddress()))
+		{
+		    return true;
+		}
+	    }	    
+	    return false;
+	}
+
     }
+    
+    @Override
+    public boolean stopService(Intent name)
+    {
+        boolean rc = super.stopService(name);
+        this.stopHttp();
+        this.stopSelf();
+        return rc;
+    }
+
+    private DAO mDao; 
+    private long lastForecastUpdate = -1;
+    private WeatherUpdateThread mUpdateThread = null; 
+    private long mLastServiceDiscoveryFailureEventLogged = -1;
+}

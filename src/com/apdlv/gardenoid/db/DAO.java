@@ -2,10 +2,13 @@ package com.apdlv.gardenoid.db;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+
+import com.apdlv.utils.U;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -20,7 +23,7 @@ public class DAO extends SQLiteOpenHelper
     private static final String TAG = DAO.class.getSimpleName(); 
     
     // Database Version
-    private static final int   DATABASE_VERSION = 26;
+    private static final int   DATABASE_VERSION = 27;
     // Database Name
     private static final String DATABASE_NAME = "ScheduleDB";
     // Table names
@@ -28,7 +31,7 @@ public class DAO extends SQLiteOpenHelper
     private static final String TABLE_WEATHER   = "weather";
     private static final String TABLE_FORECAST  = "forecast";
     private static final String TABLE_EVENTS    = "events";
-    private static final String TABLE_CODES    = "codes";
+    private static final String TABLE_CODES     = "codes";
 
 
     private static final String[] COLUMNS_SCHEDULES = 
@@ -248,7 +251,7 @@ public class DAO extends SQLiteOpenHelper
 	}
     }
 
-    public long addOrUpdateCode(long code, String url)
+    public synchronized long addOrUpdateCode(long code, String url)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -293,10 +296,7 @@ public class DAO extends SQLiteOpenHelper
     }
 
 
-
-
-
-    public long addSchedule(Schedule schedule)
+    public synchronized long addSchedule(Schedule schedule)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -306,13 +306,49 @@ public class DAO extends SQLiteOpenHelper
         return schedule.setId(id);
     }
 
-    public void purgeEvents()
+    public synchronized int purgeEvents()
     {
         SQLiteDatabase db = this.getWritableDatabase();
-	db.execSQL("DELETE FROM " + TABLE_EVENTS);
+	//int rc = db.execSQL("DELETE FROM " + TABLE_EVENTS);
+	
+        int rows = db.delete(
+        	TABLE_EVENTS, //table name
+        	null,  // selections
+        	null); //selections args
+        return rows;
     }
+    
+    
+    public String getStats()
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        
+	// "SELECT * FROM weather WHERE date>" + threshold + " ODER BY date DESC"; 	
+        StringBuilder sb = new StringBuilder("{");
+        
+        int total = 0;
+        for (String table : new String[] {TABLE_WEATHER, TABLE_FORECAST, TABLE_EVENTS, TABLE_SCHEDULES, TABLE_CODES})
+        {
+            try
+            {
+        	Cursor cursor = db.rawQuery("SELECT COUNT(id)  FROM  " + table, null);	
+        	cursor.moveToFirst();
+        	int n = cursor.getInt(0);
+        	total += n;
+        	sb.append("\"").append(table).append("\":").append(n).append(",");
+            }
+            catch (Exception e)
+            {
+        	System.err.println("getStats: " + e);
+            }
+        }
+        sb.append("\"total\"").append(total).append("}")
+;        
+	return sb.toString();
+    }
+    
 
-    public long addEvent(Event event)
+    public synchronized long addEvent(Event event)
     {
 	long id = -1;
 	SQLiteDatabase db = null;
@@ -337,7 +373,7 @@ public class DAO extends SQLiteOpenHelper
     }
 
 
-    public long insertOrUpdateWeather(Weather weather)
+    public synchronized long insertOrUpdateWeather(Weather weather)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -372,7 +408,7 @@ public class DAO extends SQLiteOpenHelper
     }
 
     
-    public long addWeather(Weather weather)
+    public synchronized long addWeather(Weather weather)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -412,7 +448,47 @@ public class DAO extends SQLiteOpenHelper
 	return w;
     }
 
-    
+    public List<Weather> getAllWeathers(String yyyy_mm_dd) throws ParseException
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        
+        Date from = U.YYYYMMDD.parse(yyyy_mm_dd);
+        from.setHours(0);
+        from.setMinutes(0);
+        from.setSeconds(0);
+        Date to = new Date(from.getTime()+24*60*60*1000);
+        
+	long min = from.getTime()/1000;
+	long max = to.getTime()/1000;
+	
+	List<Weather> list = new LinkedList<Weather>();
+	
+	// "SELECT * FROM weather WHERE date>" + threshold + " ODER BY date DESC"; 	
+	Cursor cursor = 
+		db.query(TABLE_WEATHER, // a. table
+			 COLUMNS_WEATHER, // b. column names
+			 " ?<=date AND date<? ", // c. selections 
+			 new String[] { String.valueOf(min), String.valueOf(max) }, // d. selections args
+			 null, // e. group by
+			 null, // f. having
+			 "date DESC", // g. order by
+			 null); // h. limit
+	
+	if (cursor==null || !cursor.moveToFirst()) 
+	    return null;
+	
+	do 
+	{
+	    Weather w = cursorToWeather(cursor);
+	    // Add schedule to schedules
+	    list.add(w);
+	} 
+	while (cursor.moveToNext());
+	
+	// 5. return schedule
+	return list;
+    }
+
     public List<Weather> getAllWeather(long maxAgeSeconds)
     {
         SQLiteDatabase db = this.getReadableDatabase();
@@ -525,7 +601,7 @@ public class DAO extends SQLiteOpenHelper
     }
 
     
-    public long addForecast(Forecast forecast)
+    public synchronized long addForecast(Forecast forecast)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -738,11 +814,11 @@ public class DAO extends SQLiteOpenHelper
 
     public List<Weather> getAllWeathers() 
     {
-	String query = "SELECT * FROM " + TABLE_WEATHER;	
+	String query = "SELECT * FROM " + TABLE_WEATHER + " ORDER BY date ASC";	
 	//System.err.println("query: " + query);
 	
 	// 2. get reference to writable DB
-	SQLiteDatabase db = this.getWritableDatabase();
+	SQLiteDatabase db = this.getReadableDatabase();
 	Cursor cursor = db.rawQuery(query, null);
 
 	// 3. go over each row, build schedule and add it to list
@@ -767,11 +843,11 @@ public class DAO extends SQLiteOpenHelper
     
     public List<Forecast> getAllForecasts() 
     {
-	String query = "SELECT * FROM " + TABLE_FORECAST;	
+	String query = "SELECT * FROM " + TABLE_FORECAST + " ORDER BY DAY DESC";	
 	//System.err.println("query: " + query);
 	
 	// 2. get reference to writable DB
-	SQLiteDatabase db = this.getWritableDatabase();
+	SQLiteDatabase db = this.getReadableDatabase();
 	Cursor cursor = db.rawQuery(query, null);
 
 	// 3. go over each row, build schedule and add it to list
@@ -807,7 +883,7 @@ public class DAO extends SQLiteOpenHelper
 	//System.err.println("query: " + query);
 	
 	// 2. get reference to writable DB
-	SQLiteDatabase db = this.getWritableDatabase();
+	SQLiteDatabase db = this.getReadableDatabase();
 	Cursor cursor = db.rawQuery(query, null);
 
 	// 3. go over each row, build schedule and add it to list
@@ -849,7 +925,7 @@ public class DAO extends SQLiteOpenHelper
 	return ACTIVE_CONDITION;
     }
 
-    public void insertOrUpdateForecast(Forecast forecast)
+    public synchronized void insertOrUpdateForecast(Forecast forecast)
     {
 	SQLiteDatabase db = getWritableDatabase();
 	try
@@ -868,7 +944,7 @@ public class DAO extends SQLiteOpenHelper
     }    
     
 
-    public int updateSchedule(Schedule schedule) 
+    public synchronized int updateSchedule(Schedule schedule) 
     {
 	// 1. get reference to writable DB
 	SQLiteDatabase db = this.getWritableDatabase();
@@ -909,7 +985,7 @@ public class DAO extends SQLiteOpenHelper
     }
 
 
-    public int deleteSchedule(long id /*Schedule schedule*/) 
+    public synchronized int deleteSchedule(long id /*Schedule schedule*/) 
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -1208,7 +1284,7 @@ public class DAO extends SQLiteOpenHelper
 	return null==w ? Weather.NONE : w;
     }
 
-    public int testSetSchedulePower(List<Schedule> poweredOn)
+    public synchronized int testSetSchedulePower(List<Schedule> poweredOn)
     {
 	int n = 0;
 	try
@@ -1274,7 +1350,7 @@ public class DAO extends SQLiteOpenHelper
     }
     
     
-    public int setSchedulePower(List<Schedule> poweredOn)
+    public synchronized int setSchedulePower(List<Schedule> poweredOn)
     {
 	int rc = testSetSchedulePower(poweredOn);
 	return rc;
@@ -1317,4 +1393,37 @@ public class DAO extends SQLiteOpenHelper
 	return total;
 	*/
     }
+
+    public static boolean sameDay(Calendar a, Calendar b)
+    {
+	return dateToUnixtime(a)==dateToUnixtime(b);
+    }
+
+    public synchronized int deleteWeather(List<Long> ids)
+    {
+        // 1. get reference to writable DB
+        SQLiteDatabase db = this.getWritableDatabase();
+    
+        // 2. delete
+        int rows = 0;
+        
+        for (long id : ids)
+        {
+            rows += db.delete(
+        	    TABLE_WEATHER, //table name
+        	    "id=?",  // selections
+        	    new String[] { String.valueOf(id) }); //selections args
+            System.out.println("Deleting weather condition id " + id);
+        }
+    
+        // 3. close
+        db.close();
+    
+        //log
+        Log.d("deleteWeather", "id " + ids);
+        updateLastChangeOnSchedules();
+        return rows;
+    }
+    
+
 }

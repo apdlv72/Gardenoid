@@ -145,3 +145,16 @@ a
     vertical-align: middle;
 }
 
+
+.button
+{
+    font-size: 24px !important; 
+    background: #808080; 
+    padding: .50em; 
+    margin:  .25em;
+    color:white; 
+    border-radius:    10px;
+}
+
+    
+

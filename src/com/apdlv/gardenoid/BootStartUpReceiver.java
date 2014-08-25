@@ -12,12 +12,14 @@ public class BootStartUpReceiver extends BroadcastReceiver {
 	// TODO: This method is called when the BroadcastReceiver is receiving
 
 	// Start Service On Boot Start Up
-	Intent service = new Intent(context, GardenoidService.class);
-	context.startService(service);
+	Intent serviceIntent = new Intent(context, GardenoidService.class);
+	serviceIntent.setAction("BootStartUpReceiver.start");
+	context.startService(serviceIntent);
 
 	//Start App On Boot Start Up
-	Intent App = new Intent(context, GardenoidActivity.class);
-	App.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-	context.startActivity(App);
+	Intent activityIntent = new Intent(context, GardenoidActivity.class);
+	activityIntent.setAction("BootStartUpReceiver.start");
+	activityIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	context.startActivity(activityIntent);
     }
 }

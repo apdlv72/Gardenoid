@@ -23,18 +23,27 @@ import android.os.Message;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.apdlv.utils.U;
 
 import fi.iki.elonen.NanoHTTPD;
 
-public class GardenoidActivity extends Activity implements OnCheckedChangeListener
+public class GardenoidActivity extends Activity implements OnCheckedChangeListener, OnClickListener
 {
     public static final String TAG = GardenoidActivity.class.getSimpleName();
+    
+    // during development:
+    public static final boolean DONT_COPY_PAGES = true;
 
     class HttpServiceConnection extends BroadcastReceiver implements ServiceConnection
     {
@@ -50,9 +59,12 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	    //Log.v(TAG, "Registered handler with BT service ");
 
 	    mHttpServer = mService.getHttpServer();
-	    mToggleButtonOnOff.setOnCheckedChangeListener(null);
-	    mToggleButtonOnOff.setChecked(mHttpServer.isAlive());
-	    mToggleButtonOnOff.setOnCheckedChangeListener(GardenoidActivity.this);
+	    if (null!=mToggleButtonOnOff)
+	    {
+		mToggleButtonOnOff.setOnCheckedChangeListener(null);
+		mToggleButtonOnOff.setChecked(mHttpServer.isAlive());
+		mToggleButtonOnOff.setOnCheckedChangeListener(GardenoidActivity.this);
+	    }
 
 	    updateServiceLink();
 	}
@@ -102,6 +114,9 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		int    port = mHttpServer.getListeningPort();
 		String link = "http://" + addr + ":" + port;
 		mTextViewLog.setText(link);
+		
+		
+		mWebView.loadUrl(link);
 	    }
 	    else
 	    {
@@ -127,7 +142,14 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     
     
     protected HttpServiceConnection mConnection = new HttpServiceConnection();
-    private AssetManager mAssetManager; 
+    private AssetManager mAssetManager;
+
+    private Button mButtonServiceStart;
+    private Button mButtonServiceStop;
+
+    private WebView mWebView;
+
+    //private TextView mTextViewMask; 
 
 
     @Override
@@ -141,10 +163,25 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 //	Intent intent = new Intent("BIND", null, this, GardenoidService.class);
 //	bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 	
-	mToggleButtonOnOff = (ToggleButton) findViewById(R.id.toggleButtonOnOff);
-	mToggleButtonOnOff.setOnCheckedChangeListener(this);
+	mToggleButtonOnOff = null; //(ToggleButton) findViewById(R.id.toggleButtonOnOff);
+	if (null!=mToggleButtonOnOff)
+	{
+	    mToggleButtonOnOff.setOnCheckedChangeListener(this);
+	}
+	
+	/*
+	mButtonServiceStart = (Button)findViewById(R.id.buttonServiceStart);
+	mButtonServiceStop  = (Button)findViewById(R.id.buttonServiceStop);	
+	mButtonServiceStart.setOnClickListener(this);
+	mButtonServiceStop.setOnClickListener(this);
+	*/
 	
 	mTextViewLog = (TextView) findViewById(R.id.textViewLog);
+	//mTextViewMask = (TextView) findViewById(R.id.textViewMask);
+
+	mWebView = (WebView) findViewById(R.id.webView1);
+	WebSettings webSettings = mWebView.getSettings();
+	webSettings.setJavaScriptEnabled(true);
 	
 	// register HttpServiceConnection to receive events when network configuration chenges
 	// such taht it will be able to update the service link displayed 
@@ -158,7 +195,8 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	{	    
 	    SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
 	    boolean firstRun = p.getBoolean("PREFERENCE_FIRST_RUN", true);	
-	    if (firstRun)
+	    
+	    if (!DONT_COPY_PAGES && firstRun)
 	    {
 		copyWebPagesToSDCard(TemplateEngine.DIR_PREFIX_WEBPAGES);
 		// commit AFTER we copied pages
@@ -184,6 +222,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	}
 	
 	String[] list = mAssetManager.list(prefix);
+	
 	for (String path : list)
 	{
 	    String fullPath = prefix + "/" + path;
@@ -240,6 +279,12 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		int port = null==mHttpServer ? -1 : mHttpServer.getListeningPort();
 		String link = "http://" + addr + ":" + port; 
 		mTextViewLog.setText(link);
+		break;
+	    case GardenoidService.MSG_MASK:
+		int mask = (Integer)msg.obj;
+		String title = mask>0 ? "Gardenoid (" + mask  + ")" : "Gardenoid"; 
+		setTitle(title);
+		//mTextViewMask.setText("mask: " + mask);
 	    }
 	}
     };
@@ -250,15 +295,47 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     {
 	super.onStart();
 	Log.e(TAG, "******** CALLED: onStart ********");
+	Intent startIntent = getIntent();
 	
-	// Start Service On Boot Start Up
-	Intent intent1 = new Intent(this, GardenoidService.class);
-	startService(intent1);
+	String action = (null==startIntent) ? "none(no intent)" : startIntent.getAction();
+	
+	if (GardenoidService.ACTION_NOTIFICATION.equals(action))
+	{
+	    Log.d(TAG, "Notification clicked. No need to start service again.");
+	}	
+	else	   
+	{	
+	    Toast.makeText(this, "GardenoidActivity.onStart: action=" + action, Toast.LENGTH_LONG).show();
+	    // Start service on start up
+	    startGardenoidService();
+	}
 
-	Intent intent2 = new Intent("BIND", null, this, GardenoidService.class);
-	bindService(intent2, mConnection, Context.BIND_AUTO_CREATE);
+	bindToGardenoidService();
 	
 	Log.e(TAG, "******** DONE: onStart ********");
+    }
+
+
+
+    /**
+     * 
+     */
+    private void bindToGardenoidService()
+    {
+	Intent intent2 = new Intent("BIND", null, this, GardenoidService.class);
+	bindService(intent2, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+
+
+    /**
+     * 
+     */
+    private void startGardenoidService()
+    {
+	Intent intent1 = new Intent(this, GardenoidService.class);
+	intent1.setAction("GardenoidActivity.start");
+	startService(intent1);
     };
 
     
@@ -316,5 +393,61 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     private NanoHTTPD mHttpServer;
     private TextView mTextViewLog;
     private ToggleButton mToggleButtonOnOff;
+
+
+    @Override
+    public void onClick(View v)
+    {
+	if (v==mButtonServiceStart)
+	{
+	}
+	else if (v==mButtonServiceStop)
+	{
+	    stopBackgroundService();
+	}
+    }
+
+    @Override
+    public boolean onMenuItemSelected(int featureId, android.view.MenuItem item) 
+    {
+	if (item.getItemId()==R.id.menuStartService)
+	{
+	    startBackgroundService();
+	}
+	else if (item.getItemId()==R.id.menuStopService)
+	{
+	    stopBackgroundService();
+	} 
+	return false;
+    };
+
+    /**
+     * 
+     */
+    private void stopBackgroundService()
+    {
+	GardenoidService s = null==mConnection ? null : mConnection.mService;
+	if (null!=s)
+	{
+	mConnection.unbind(this);
+	//unbindService(mConnection);		
+	
+	Intent i = new Intent("User.stop");
+	s.stopService(i);	    		
+	}
+	mConnection.updateServiceLink();
+    }
+
+
+
+    /**
+     * 
+     */
+    private void startBackgroundService()
+    {
+	startGardenoidService();
+	bindToGardenoidService();	   
+	mConnection.updateServiceLink();
+    }
 
 }

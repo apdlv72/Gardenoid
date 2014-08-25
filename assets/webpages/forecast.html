@@ -11,11 +11,24 @@
     <script>
 function show_weather(node)
 {
-	var day = $(node).find("#idDay").text();
+	var day    = $(node).find("#idDay").text();
+	var future = $(node).find("#idFuture").text();
 		 
-	// TODO: show all weather conditions for the selected day
-	var url = "weather.html?day=" + day;
-	alert("NYI: url=" + url);	
+	if ("true"==future)
+	{
+		alert("Date is in future!");
+		return;
+	}
+		
+	var url = "weather.html?day=" + day + "&nonce=" + make_nonce();
+	document.location = url;
+	/*
+	var win = window.open(
+		url, 
+		"Weather", 
+		"width=300,height=600,resizable=yes");
+    win.focus();
+    */
 }
 
 function create_forecast_dom(no, template, forecast)
@@ -28,6 +41,7 @@ function create_forecast_dom(no, template, forecast)
 	var low  = f["low"];
 	var high = f["high"];
 	var upd  = f["upd"];
+	var future = f["future"];
 
 	copy = template.clone();
 	copy.removeAttr("id");
@@ -48,12 +62,15 @@ function create_forecast_dom(no, template, forecast)
 	else if ("Sat"==dow) dom.addClass("saturday");
 	else if (no%2)       dom.addClass("odd");
 	
+	if (future) dom.addClass("future");
+	
 	dom.find("#idDay").text(day);
 	dom.find("#idDow").text(dow);
 	dom.find("#idText").text(text);
 	dom.find("#idCode").text(code);
 	dom.find("#idLow").text(low);
 	dom.find("#idHigh").text(high);
+	dom.find("#idFuture").text(future);
 	var img = dom.find("#idImg")[0];
 	img.src = "http://l.yimg.com/a/i/us/we/52/" + code + ".gif";
 	
@@ -130,9 +147,10 @@ function update_forecasts()
   				</div>
   				<div>  		  				
   					<span id="idDow">Dow</span> <span id="idDay">2014-01-01</span>
+  					<span id="idFuture" style="display:none"> </span>
   				</div>
   				<div><!-- <span id="idCode"> </span> //--><span id="idText">Sunny</span></div>  		  				
-  				<div><span id="idLow">10</span>C / <span id="idHigh">15</span>C</div>
+  				<div><span id="idLow">10</span>&deg;C / <span id="idHigh">15</span>&deg;C</div>
 			</div>
 		  	
 	  	</div>	  	
