@@ -60,6 +60,7 @@ import com.apdlv.yahooweather.WeatherConditions;
 
 import fi.iki.elonen.NanoHTTPD;
 //import com.apdlv.gardenoid.MyJson.JArray;
+import fi.iki.elonen.NanoHTTPD_SSL;
 
 /**
  * A service running in the background and implementing kind of a HTTP to bluetooth gateway.

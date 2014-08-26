@@ -1,9 +1,25 @@
+       
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
         android:id="@+id/menuStartService"
-        android:orderInCategory="100"
-        android:title="Start service"/>
-    <item android:id="@+id/menuStopService" android:title="Stop service"></item>
+        android:icon="@android:drawable/ic_media_play"
+        android:title="Start service" android:titleCondensed="Start"/>
+    <item
+        android:id="@+id/menuStopService"
+        android:icon="@android:drawable/ic_media_pause"
+        android:title="Stop service" android:titleCondensed="Stop">
+    </item>
+    <item
+        android:id="@+id/menuReload"
+        android:icon="@android:drawable/ic_menu_rotate"
+        android:title="Reload" android:titleCondensed="Reload">
+    </item>
+    <item
+        android:id="@+id/menuOpenBrowser"
+        android:icon="@android:drawable/ic_menu_upload"
+        android:title="Open in browser" android:titleCondensed="Browser">
+    </item>
 
 </menu>
+        

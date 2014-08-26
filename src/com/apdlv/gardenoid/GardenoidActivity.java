@@ -16,6 +16,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -47,6 +48,10 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     
     // during development:
     public static final boolean DONT_COPY_PAGES = true;
+    
+    private long mStartTime = U.millis();
+    private String mServiceLink = "http://127.0.0.1:8080";
+	
 
     class HttpServiceConnection extends BroadcastReceiver implements ServiceConnection
     {
@@ -103,27 +108,30 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	    }
 	}
 
-	
 	public void updateServiceLink()
 	{	
 	    if (null!=mHttpServer && mHttpServer.isAlive())
 	    {
 		if (null==mService)
 		{
-		    mTextViewLog.setText("Service unconnected");
+		    mServiceLink = "Service unconnected";
+		    //mTextViewLog.setText("Service unconnected");
+		    updateTitle();
 		    return;
 		}
 		String addr = mService.getAddress();
 		int    port = mHttpServer.getListeningPort();
-		String link = "http://" + addr + ":" + port + "?" + U.millis();
-		mTextViewLog.setText(link);
-				
-		mWebView.loadUrl(link);
+		mServiceLink = "http://" + addr + ":" + port;
+		//mTextViewLog.setText(mServiceLink);				
+		mWebView.loadUrl(mServiceLink + String.format("?v=%x", mStartTime));
 	    }
 	    else
 	    {
-		mTextViewLog.setText("Server not active");
+		mServiceLink = "Service stopped";
+		mWebView.loadData("Service stopped", "text/html", "utf-8");
+		//mTextViewLog.setText("Server not active");
 	    }	
+	    updateTitle();
 	}
 
 
@@ -178,7 +186,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	mButtonServiceStop.setOnClickListener(this);
 	*/
 	
-	mTextViewLog = (TextView) findViewById(R.id.textViewLog);
+	//mTextViewLog = (TextView) findViewById(R.id.textViewLog);
 	//mTextViewMask = (TextView) findViewById(R.id.textViewMask);
 
 	mWebView = (WebView) findViewById(R.id.webView1);
@@ -212,7 +220,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		public void onCloseWindow(WebView window)
 		{
 		    //super.onCloseWindow(window);
-		    window.loadUrl("http://127.0.0.1:8080/index.html");
+		    window.loadUrl(mServiceLink + String.format("?v=%x", mStartTime));
 		}
 	});
 	
@@ -310,18 +318,32 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	    case GardenoidService.MSG_SRVADDR:
 		String addr = (String) msg.obj;
 		int port = null==mHttpServer ? -1 : mHttpServer.getListeningPort();
-		String link = "http://" + addr + ":" + port; 
-		mTextViewLog.setText(link);
+		mServiceLink = "http://" + addr + ":" + port; 
+		updateTitle();
 		break;
 	    case GardenoidService.MSG_MASK:
-		int mask = (Integer)msg.obj;
-		String title = mask>0 ? "Gardenoid (" + mask  + ")" : "Gardenoid"; 
-		setTitle(title);
-		//mTextViewMask.setText("mask: " + mask);
+		mStrandMask = (Integer)msg.obj;
+		updateTitle();
+		break;
 	    }
 	}
     };
     
+    private int mStrandMask = 0;
+    
+    private void updateTitle()
+    {
+	String sMask = "";
+	
+	if (mStrandMask>0)
+	{
+	    sMask = Integer.toBinaryString(mStrandMask);
+	    while (sMask.length()<8) sMask="0"+sMask;
+	}
+	
+	String title = sMask + " Gardenoid " + " " + mServiceLink.replaceAll("http://", "");
+	setTitle(title);	
+    }
     
     @Override
     protected void onStart() 
@@ -424,7 +446,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     
     
     private NanoHTTPD mHttpServer;
-    private TextView mTextViewLog;
+    //private TextView mTextViewLog;
     private ToggleButton mToggleButtonOnOff;
 
 
@@ -451,12 +473,24 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	{
 	    stopBackgroundService();
 	} 
+	else if (item.getItemId()==R.id.menuOpenBrowser)
+	{
+	    if (null!=mHttpServer && mHttpServer.isAlive())
+	    {
+		String url = mServiceLink + String.format("?v=%x", mStartTime); 
+		Intent i = new Intent(Intent.ACTION_VIEW);
+		i.setData(Uri.parse(url));
+		startActivity(i);
+	    }
+	} 
+	else if (item.getItemId()==R.id.menuReload)
+	{
+	    mWebView.loadUrl(mServiceLink + String.format("?v=%x", U.millis()));
+	    mWebView.reload();
+	} 
 	return false;
     };
 
-    /**
-     * 
-     */
     private void stopBackgroundService()
     {
 	GardenoidService s = null==mConnection ? null : mConnection.mService;
@@ -472,10 +506,6 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     }
 
 
-
-    /**
-     * 
-     */
     private void startBackgroundService()
     {
 	startGardenoidService();

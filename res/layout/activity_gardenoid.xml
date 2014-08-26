@@ -5,13 +5,13 @@
     android:orientation="vertical"
     tools:context=".GardenoidActivity" >
 
-    <TextView
+<!--     <TextView
         android:id="@+id/textViewLog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:autoLink="web"
         android:text="@string/hello_world" />
-
+ -->
 <!--     <TextView
         android:id="@+id/textViewMask"
         android:layout_width="wrap_content"
