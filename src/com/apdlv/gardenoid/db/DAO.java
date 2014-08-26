@@ -8,8 +8,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.apdlv.utils.U;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -17,6 +15,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+
+import com.apdlv.utils.U;
 
 public class DAO extends SQLiteOpenHelper
 {
@@ -44,8 +44,8 @@ public class DAO extends SQLiteOpenHelper
 	{ "id", "active_mask", "date", "message", "json", };     
     private static final String[] COLUMNS_CODES =
 	{ "id", "code", "imglink", };
-    private static final String[] COLUMNS_STRANDS =
-	{ "id", "name", "power_perc", "pressure_perc", };
+//    private static final String[] COLUMNS_STRANDS =
+//	{ "id", "name", "power_perc", "pressure_perc", };
 
     private static final String COLUMN_LIST = concatColumns(COLUMNS_SCHEDULES); 
 
@@ -318,21 +318,21 @@ public class DAO extends SQLiteOpenHelper
         return id;
     }
     
-    long mLastStrandUpdate = -1;
+    private long mLastReconfigTime = -1;
     
-    public long getLastStrandUpdate()
+    public long getLastReconfigTime()
     {
-	return mLastStrandUpdate;
+	return mLastReconfigTime;
     }
     
     public synchronized long addOrUpdateStrand(long id, String name)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
-        long oid = -1;
         try
         {
-            oid = updateStrand(db, id, name);
+            @SuppressWarnings("unused")
+            long oid = updateStrand(db, id, name);
         }
         catch (Exception e)
         {
@@ -354,8 +354,13 @@ public class DAO extends SQLiteOpenHelper
         // 4. close            
         db.close();
         
-        mLastStrandUpdate = DAO.nowUnixtime();
+        updateLastReconfigTime();
         return id;
+    }
+
+    private void updateLastReconfigTime()
+    {
+	mLastReconfigTime = U.millis();
     }
     
     private long updateCode(SQLiteDatabase db, long code, String url)

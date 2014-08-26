@@ -54,6 +54,11 @@ public class U
 	return null==string ? null : Float.parseFloat(string);
     }
 
+    public static long millis()
+    {
+	return now().getTimeInMillis();
+    }
+    
     public static Calendar now()
     {
 	return Calendar.getInstance();

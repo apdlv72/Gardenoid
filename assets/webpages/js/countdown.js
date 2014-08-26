@@ -90,3 +90,59 @@ function update_time()
 	});	
 }
 
+function set_strand_names()
+{
+	for (i=1; i<=8; i++)
+	{
+		var name = strands[i].name;
+		$("#idTitle"+i).text(name);	
+	}
+}
+
+function edit_strand()
+{
+	$("#idStrandName").hide();
+	var name = $("#idStrandName").text();
+	 
+	$("#idStrandNameInput")[0].value=name;
+	$("#idStrandNameEdit").fadeIn();
+	$("#idStrandNameInput").focus();
+}    
+
+function edit_strand_done()
+{
+	$("#idStrandNameEdit").hide();
+	$("#idStrandName").fadeIn();
+	return false;
+}    
+
+function receive_rename(data)
+{
+	var no   = data["no"];
+	var name = data["name"];
+	// update lastReconfig (defined in gardenoid.js) to a reload due to configuration change:
+	lastReconfig = data["reconfig"];
+	
+	strands[no].name = name;
+	$("#idStrandName").text(name);
+	set_strand_names();
+	edit_strand_done();
+}
+	
+function edit_strand_save()
+{
+	var oldName = $("#idStrandName").text();
+	var newName = $("#idStrandNameInput")[0].value;
+	
+	if (oldName==newName)
+	{
+		return edit_strand_done();
+	}
+
+	var no  = strandInDialog;
+	var url = "/rest/strand/rename?no=" + no + "&old=" + encodeURIComponent(oldName) + "&new=" + encodeURIComponent(newName);
+	var request = $.getJSON(url, receive_rename);
+	return false;
+}    
+
+

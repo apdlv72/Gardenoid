@@ -115,10 +115,9 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		}
 		String addr = mService.getAddress();
 		int    port = mHttpServer.getListeningPort();
-		String link = "http://" + addr + ":" + port;
+		String link = "http://" + addr + ":" + port + "?" + U.millis();
 		mTextViewLog.setText(link);
-		
-		
+				
 		mWebView.loadUrl(link);
 	    }
 	    else
@@ -212,8 +211,8 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		@Override
 		public void onCloseWindow(WebView window)
 		{
-        		//super.onCloseWindow(window);
-        		window.loadUrl("http://127.0.0.1:8080/index.html");
+		    //super.onCloseWindow(window);
+		    window.loadUrl("http://127.0.0.1:8080/index.html");
 		}
 	});
 	

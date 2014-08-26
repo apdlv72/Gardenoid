@@ -1,5 +1,6 @@
 
 var lastVersion     = null;
+var lastReconfig    = null;
 var lastFingerprint = null;	
 var lastOnetimeList = [];
 var timeSkew        = 0;
@@ -178,6 +179,7 @@ function receive_status(data)
 	    var power          = data["power"];
 	    var scheduled      = data["scheduled"];
 	    var newVersion     = data["version"];
+	    var newReconfig    = data["reconfig"];
 	    var remoteUnixTime = data["unixtime"];
 	    lastFingerprint    = data["fingerprint"];
 	    lastOnetimeList    = data["onetimeList"];		    	
@@ -188,7 +190,12 @@ function receive_status(data)
 	    {
 	    	location.reload(true);
 	    } 		    
-	    lastVersion = newVersion;
+	    if (lastReconfig!=null && lastReconfig!=newReconfig)
+	    {
+	    	location.reload(true);
+	    } 		    
+	    lastVersion  = newVersion;
+	    lastReconfig = newReconfig
 	    	
 	    var remoteMillis = remoteUnixTime*1000;
 	    var localMillis  = (new Date()).getTime();

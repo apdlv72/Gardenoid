@@ -1517,7 +1517,9 @@ public class GardenoidService extends Service
 		int id = Integer.parseInt(idStr);
 		mDao.addOrUpdateStrand(id, name);
 		
-		msg.append(new JSONObject().put("no", id).put("name", name).toString());
+		// send time of last config update so the instance that caused this change
+		// may update this information in order not to force a relaod 
+		msg.append(new JSONObject().put("no", id).put("name", name).put("reconfig", mDao.getLastReconfigTime()).toString());
 	    }
 	    else if (resource.startsWith("/weather/compact"))
 	    {
@@ -1831,7 +1833,7 @@ public class GardenoidService extends Service
 		String newFingerprint = "";
 
 		boolean changed = false;
-		int onetimeMask = 0;
+		int     onetimeMask = 0;
 		for (int trials=40; trials>0 && !changed; trials--)
 		{
 		    onetimeMask = mOneTimeContainer.getMask();
@@ -1839,8 +1841,7 @@ public class GardenoidService extends Service
 		    {
 			if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		    }
-		    //String versionAndStrandNames = mServiceVersion + "_" + mDao.getLastStrandUpdate();
-		    newFingerprint = "" + mServiceVersion + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
+		    newFingerprint = "" + mServiceVersion + "_" + mDao.getLastReconfigTime() + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
 		    changed = !newFingerprint.equalsIgnoreCase(oldFingerprint);
 		    if (!changed)
 		    {
@@ -1855,8 +1856,8 @@ public class GardenoidService extends Service
 		msg.append("{ \"changed\": ").append(changed);
 		// version will let HTML frontend detect when to reload the whole page because of reinstall:
 		// adding last strand update time to make page reload when strand names were changed
-		String versionAndStrandNames = mServiceVersion + "_" + mDao.getLastStrandUpdate();
-		msg.append(", \"version\":\"").append(versionAndStrandNames).append("\"");  
+		msg.append(", \"version\":\"").append(mServiceVersion).append("\"");  
+		msg.append(", \"reconfig\":\"").append(mDao.getLastReconfigTime()).append("\"");  
 		msg.append(", \"discovering\":").append(isDiscovering());
 		msg.append(", \"connected\":").append(isConnected());
 		msg.append(", \"peer\":").append(MyJson.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
@@ -2311,7 +2312,8 @@ public class GardenoidService extends Service
 	    }
 
 	    Map<String, String> map = this.toMap();
-	    map.put("conditionals", Conditional.CONDITIONALS_JSON);        	
+	    map.put("conditionals", Conditional.CONDITIONALS_JSON);        
+	    map.put("version", mServiceVersion);
 	    map.putAll(params);
 
 	    page = mTemplateEngine.render(uri, map);
