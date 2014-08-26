@@ -23,7 +23,7 @@ public class DAO extends SQLiteOpenHelper
     private static final String TAG = DAO.class.getSimpleName(); 
     
     // Database Version
-    private static final int   DATABASE_VERSION = 27;
+    private static final int   DATABASE_VERSION = 28;
     // Database Name
     private static final String DATABASE_NAME = "ScheduleDB";
     // Table names
@@ -32,7 +32,7 @@ public class DAO extends SQLiteOpenHelper
     private static final String TABLE_FORECAST  = "forecast";
     private static final String TABLE_EVENTS    = "events";
     private static final String TABLE_CODES     = "codes";
-
+    private static final String TABLE_STRANDS   = "strands";
 
     private static final String[] COLUMNS_SCHEDULES = 
 	{ "id","strand_mask","day_mask","month_mask","start_time","end_time","duration","interval","id_condition","condition_args","id_exception","exception_args","power" };
@@ -44,6 +44,8 @@ public class DAO extends SQLiteOpenHelper
 	{ "id", "active_mask", "date", "message", "json", };     
     private static final String[] COLUMNS_CODES =
 	{ "id", "code", "imglink", };
+    private static final String[] COLUMNS_STRANDS =
+	{ "id", "name", "power_perc", "pressure_perc", };
 
     private static final String COLUMN_LIST = concatColumns(COLUMNS_SCHEDULES); 
 
@@ -72,6 +74,40 @@ public class DAO extends SQLiteOpenHelper
     @Override
     public void onCreate(SQLiteDatabase db) 
     {	
+	try
+	{
+	    String CREATE_TABLE = 
+		    "CREATE TABLE IF NOT EXISTS strands " +
+			    "( " +
+			    "id INTEGER UNIQUE " 
+			    + ", name      STRING "
+			    + ")";
+	    db.execSQL(CREATE_TABLE);
+	    /*
+	    for (String column : new String[] { "id" })
+	    {
+		String SQL_IDX = "CREATE INDEX idx_codes_" + column + " ON codes (" + column + ")"; 
+		db.execSQL(SQL_IDX);
+	    }
+	    */
+	    for (int id : new Integer[] {1,2,3,4,5,6,7,8})
+	    {
+		try { addStrand(db, id, "Strand " + id); }
+		catch (Exception e)
+		{
+		    Log.e(TAG, "onCreate: " + e);
+		}
+	    }
+	    
+	}
+	catch (Exception e)
+	{
+	    StringWriter sw = new StringWriter();
+	    e.printStackTrace(new PrintWriter(sw));
+	    String exceptionAsString = sw.toString();
+	    Log.e(TAG, "onCreate: " + exceptionAsString);
+	}
+
 	try
 	{
 	    String CREATE_TABLE = 
@@ -282,6 +318,45 @@ public class DAO extends SQLiteOpenHelper
         return id;
     }
     
+    long mLastStrandUpdate = -1;
+    
+    public long getLastStrandUpdate()
+    {
+	return mLastStrandUpdate;
+    }
+    
+    public synchronized long addOrUpdateStrand(long id, String name)
+    {
+        // 1. get reference to writable DB
+        SQLiteDatabase db = this.getWritableDatabase();
+        long oid = -1;
+        try
+        {
+            oid = updateStrand(db, id, name);
+        }
+        catch (Exception e)
+        {
+            Log.e(TAG, ""+e);
+        }
+        
+        if (id<1)
+        {
+            try
+            {
+                id = addStrand(db, id, name);
+            }
+            catch (Exception e)
+            {
+                Log.e(TAG, ""+e);
+            }            
+        }
+        
+        // 4. close            
+        db.close();
+        
+        mLastStrandUpdate = DAO.nowUnixtime();
+        return id;
+    }
     
     private long updateCode(SQLiteDatabase db, long code, String url)
     {
@@ -290,6 +365,19 @@ public class DAO extends SQLiteOpenHelper
         	  values,  // column/value
         	  "code=?",
         	  new String[] { String.valueOf(code) }); //selection args
+        // do NOT close here
+        //db.close();
+        return i;
+    }
+
+
+    private long updateStrand(SQLiteDatabase db, long id, String name)
+    {
+        ContentValues values = strandToContentValues(id, name);
+        int i = db.update(TABLE_STRANDS, // table
+        	  values,  // column/value
+        	  "id=?",
+        	  new String[] { String.valueOf(id) }); //selection args
         // do NOT close here
         //db.close();
         return i;
@@ -671,6 +759,21 @@ public class DAO extends SQLiteOpenHelper
         return id;
     }
 
+    private long addStrand(SQLiteDatabase db, long id, String name)
+    {
+        //for logging
+        Log.d("addStrand ", "" + id + ", " + name); 
+    
+        ContentValues values = strandToContentValues(id, name);
+    
+        // 3. insert
+        long nid = db.insert(TABLE_STRANDS, // table
+        	null, //nullColumnHack
+        	values); // key/value -> keys = column names/ values = column values
+        // do NOT close here
+        return nid;
+    }
+
     private long addWeather(SQLiteDatabase db, Weather weather)
     {
         //for logging
@@ -810,7 +913,6 @@ public class DAO extends SQLiteOpenHelper
 	return schedules;
     }
     
-    
 
     public List<Weather> getAllWeathers() 
     {
@@ -838,6 +940,35 @@ public class DAO extends SQLiteOpenHelper
 
 	// return schedules
 	return weather;
+    }
+    
+    
+    public String[] getAllStrands() 
+    {
+	String query = "SELECT * FROM " + TABLE_STRANDS + " ORDER BY id ASC";	
+	//System.err.println("query: " + query);
+	
+	// 2. get reference to writable DB
+	SQLiteDatabase db = this.getReadableDatabase();
+	Cursor cursor = db.rawQuery(query, null);
+
+	// 3. go over each row, build schedule and add it to list
+	String[] strands = new String[8];
+	if (cursor.moveToFirst()) 
+	{
+	    do 
+	    {
+		int    id   = cursor.getInt(0);
+		String name = cursor.getString(1);
+		strands[id-1] = name;
+	    } 
+	    while (cursor.moveToNext());
+	}
+
+	Log.d("getAllStrands()", "" + strands);
+
+	// return schedules
+	return strands;
     }
     
     
@@ -1101,6 +1232,14 @@ public class DAO extends SQLiteOpenHelper
 	ContentValues values = new ContentValues();
 	values.put("code",      id);
 	values.put("imgurl",    url);
+	return values;
+    }
+    
+    private static ContentValues strandToContentValues(long id, String name)
+    {
+	ContentValues values = new ContentValues();
+	values.put("id",      id);
+	values.put("name",    name);
 	return values;
     }
     

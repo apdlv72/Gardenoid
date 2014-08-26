@@ -5,9 +5,67 @@
     <title>Gardenoid</title>    
     <script src="js/jquery.min.js"></script>
     <script src="js/gardenoid.js"></script>
+    <!-- dynamic (generated) java script //-->
     <script src="js/conditionals.js"></script>    
+    <script src="js/strands.js"></script>    
     <!-- order matters here. forecast.js will overwrite update_time() defined in gardenoid.js //-->        
     <script src="js/countdown.js"></script>
+    <script>
+
+function set_strand_names()
+{
+	for (i=1; i<=8; i++)
+	{
+		var name = strands[i].name;
+		$("#idTitle"+i).text(name);	
+	}
+}
+
+function edit_strand()
+{
+	$("#idStrandName").hide();
+	var name = $("#idStrandName").text();
+	 
+	$("#idStrandNameEdit").show();
+	$("#idStrandNameInput")[0].value=name;
+}    
+
+function edit_strand_cancel()
+{
+	$("#idStrandName").show();
+	$("#idStrandNameEdit").hide();
+	return false;
+}    
+
+function receive_rename(data)
+{
+	no = data["no"];
+	name = data["name"];
+	//alert("receive_rename: no=" + no + ", name=" + name);
+	strands[no].name = name;
+	$("#idStrandName").text(name);
+	set_strand_names();
+}
+	
+function edit_strand_save()
+{
+	$("#idStrandName").show();
+	$("#idStrandNameEdit").hide();
+
+	var oldName = $("#idStrandName").text();
+	var newName = $("#idStrandNameInput")[0].value;
+	
+	//if (oldName!=newName)
+	{
+		var no  = strandInDialog;
+		var url = "/rest/strand/rename?no=" + no + "&old=" + encodeURIComponent(oldName) + "&new=" + encodeURIComponent(newName);
+		//alert("NYI: json call for" + url);
+		
+		var request = $.getJSON(url, receive_rename);
+	}
+	return false;
+}    
+    </script>
                 
     <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>
     <link rel="stylesheet" href="css/countdown.css" type="text/css" charset="utf-8"/>            
@@ -33,8 +91,16 @@
 	  	<div class="dialog_menu">
 	  		<div class="spread">
 				<div id="idLeftDialog" class="statusText" style="font-size: 18px; margin-left:1em; margin-top: 12px;">0</div>
-				<div id="idStrandName" class="statusText" style="font-size: 18px; margin-top: 12px;">Strand</div>
-				<div style="margin: 5px"><a href="javascript:hide_dialog();"><img src="img/cancel.png"/></a></div>
+				<div>
+					<div id="idStrandName" onclick="edit_strand()" class="statusText" style="font-size: 18px; margin-top: 12px;">Strand</div>
+					<div id="idStrandNameEdit" style="font-size: 18px; margin-top: 12px; display:none;">
+						<form action="/strand/rename.html" onsubmit="return edit_strand_save();">
+							<input id="idStrandNameInput" name="name"   type="text"   value="Strand name" size="10">
+							<input name="submit" type="submit" value="save">
+						</form>
+					</div>
+				</div>
+				<div style="margin: 5px"><a href="javascript:hide_dialog();edit_strand_cancel();"><img src="img/cancel.png"/></a></div>
 			    <span class="stretch"> </span>
 		   </div>
 		</div>
@@ -160,6 +226,7 @@
   </body>
   
   <script>
+  	$(document).ready(set_strand_names());
    	$(document).ready(update_status());
    	window.setInterval(update_time, 1000);		    		 	
   </script>

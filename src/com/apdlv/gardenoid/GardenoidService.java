@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StreamCorruptedException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -1499,7 +1500,7 @@ public class GardenoidService extends Service
 	    return null;
 	}
 
-	private Response serveRest(IHTTPSession session, String resource, Map<String, String> params) throws ParseException	
+	private Response serveRest(IHTTPSession session, String resource, Map<String, String> params) throws ParseException, JSONException	
 	{
 	    StringBuilder msg      = new StringBuilder();	
 
@@ -1507,6 +1508,16 @@ public class GardenoidService extends Service
 	    {		 
 		Set<BluetoothDevice> pairedDevices = mBtAdapter.getBondedDevices();
 		listDevices(pairedDevices, mVisibleDevices, msg);
+	    }
+	    else if (resource.startsWith("/strand/rename"))
+	    {
+		String idStr   = params.get("no");
+		String name = params.get("new");
+		
+		int id = Integer.parseInt(idStr);
+		mDao.addOrUpdateStrand(id, name);
+		
+		msg.append(new JSONObject().put("no", id).put("name", name).toString());
 	    }
 	    else if (resource.startsWith("/weather/compact"))
 	    {
@@ -1828,11 +1839,12 @@ public class GardenoidService extends Service
 		    {
 			if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		    }
+		    //String versionAndStrandNames = mServiceVersion + "_" + mDao.getLastStrandUpdate();
 		    newFingerprint = "" + mServiceVersion + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
 		    changed = !newFingerprint.equalsIgnoreCase(oldFingerprint);
 		    if (!changed)
 		    {
-			U.mSleep(150);
+			U.mSleep(50);
 			//U.mSleep(4*250);
 		    }        	    
 		}
@@ -1842,7 +1854,9 @@ public class GardenoidService extends Service
 		long nowUnixtime = DAO.datetimeToUnixtime(now);
 		msg.append("{ \"changed\": ").append(changed);
 		// version will let HTML frontend detect when to reload the whole page because of reinstall:
-		msg.append(", \"version\":\"").append(mServiceVersion).append("\"");  
+		// adding last strand update time to make page reload when strand names were changed
+		String versionAndStrandNames = mServiceVersion + "_" + mDao.getLastStrandUpdate();
+		msg.append(", \"version\":\"").append(versionAndStrandNames).append("\"");  
 		msg.append(", \"discovering\":").append(isDiscovering());
 		msg.append(", \"connected\":").append(isConnected());
 		msg.append(", \"peer\":").append(MyJson.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
@@ -2026,7 +2040,7 @@ public class GardenoidService extends Service
 	final private String FAVICON_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=";
 	final private byte[] FAVICON_DATA = Base64.decode(FAVICON_B64,Base64.DEFAULT);
 
-	public Response serveUnsecurely(IHTTPSession session) throws ParseException 
+	public Response serveUnsecurely(IHTTPSession session) throws ParseException, JSONException 
 	{
 	    Method method = session.getMethod();
 	    String uri    = session.getUri();            
@@ -2202,6 +2216,29 @@ public class GardenoidService extends Service
 		r.addHeader("Expires", expires);
 		return r;
 	    }
+	    
+	    if (template.equals("/js/strands.js"))
+	    {
+		StringBuilder sb = new StringBuilder("{");
+		String strands[] = mDao.getAllStrands();
+		
+		for (int i=1; i<=8; i++)
+		{
+		    String name = strands[i-1];
+		    sb.append(i).append(":");
+		    sb.append("{\"name\":\"").append(name).append("\"},");
+		}
+		sb.append("9:{\"name\":null}}");
+		
+		String script = "var strands = " + sb.toString() + ";";
+		String expires = createExpirationDate();
+
+		Response r = new Response(STATUS_200, CT_JAVASCRIPT, script);
+		r.addHeader("Cache-Control", "Public");
+		r.addHeader("Expires", expires);
+		return r;
+	    }
+		
 
 	    if (template.endsWith(".js"))
 	    {

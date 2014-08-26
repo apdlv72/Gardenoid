@@ -6,7 +6,6 @@ var updateOngoing        = false;
 var global_action = null; 
 var global_id     = null;
 
-
 function show_dialog_in_viewport()
 {
 	var dialog = $("#idDialog");
@@ -250,34 +249,8 @@ function create_schedules_dom(no, template, schedule)
 
 var dialogWindow = null;
 
-function edit_schedule(dom)
-{
-	if (null!=dialogWindow) dialogWindow.close();
-	
-	id = dom.id;
-	dialogWindow = window.open(
-		"/schedules/edit.html?action=edit&id=" + id + "&nonce=" + make_nonce(), 
-		"Edit schedule", 
-		"width=300,height=600,resizable=yes");
-	dialogWindow.focus();
-}
-
-function add_schedule()
-{
-	if (null!=dialogWindow) dialogWindow.close();
-
-	dialogWindow = window.open(
-		"/schedules/edit.html?action=add&nonce=" + make_nonce(), 
-		"Add schedule", 
-		"width=300,height=600,resizable=yes");
-    windialogWindow.focus();
-}
-
-
-
 ///////////////////////////////
 
-// from edit.js
 
 function check_time(hhmm)
 {
@@ -399,6 +372,7 @@ function rest_success(operation, id)
 	//if (operation=="update") alert("Schedule updated");
 	//if (operation=="delete") alert("Schedule deleted");
 	log("rest_success: operation=" + operation + ", id=" +  id);
+	/*
 	if (window.opener)
 	{
 		log("asking window.opener to update schedules"); 
@@ -406,6 +380,7 @@ function rest_success(operation, id)
 		window.close();
 	}
 	else
+	*/
 	{
 		log("rest_success: calling update_schedules(" + operation + "," + id + ")");
 		update_schedules(operation, id);
@@ -452,12 +427,6 @@ function rest_call(url)
 		}					
 	})
 	.error(handle_json_error);
-}
-
-
-function cancel_dialog()
-{
-	window.close();
 }
 
 function do_update_schedule(action, id)
