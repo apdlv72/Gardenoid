@@ -17,6 +17,7 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,20 +28,20 @@ import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.webkit.JsResult;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.apdlv.utils.U;
 
-import fi.iki.elonen.NanoHTTPD;
+import fi.iki.elonen.NanoHTTPD_SSL;
 
 public class GardenoidActivity extends Activity implements OnCheckedChangeListener, OnClickListener
 {
@@ -50,8 +51,12 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     public static final boolean DONT_COPY_PAGES = true;
     
     private long mStartTime = U.millis();
-    private String mServiceLink = "http://127.0.0.1:8080";
 	
+    private String mServerProtocol = "https://";
+    private String mServerAddr     = GardenoidService.getAddress();
+    private int    mServerPort     = 8080;
+    private String mServiceLink    = "undefined";
+
 
     class HttpServiceConnection extends BroadcastReceiver implements ServiceConnection
     {
@@ -110,26 +115,26 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 
 	public void updateServiceLink()
 	{	
+	    mServerAddr = GardenoidService.getAddress();
 	    if (null!=mHttpServer && mHttpServer.isAlive())
 	    {
 		if (null==mService)
 		{
 		    mServiceLink = "Service unconnected";
-		    //mTextViewLog.setText("Service unconnected");
 		    updateTitle();
 		    return;
 		}
-		String addr = mService.getAddress();
-		int    port = mHttpServer.getListeningPort();
-		mServiceLink = "http://" + addr + ":" + port;
-		//mTextViewLog.setText(mServiceLink);				
-		mWebView.loadUrl(mServiceLink + String.format("?v=%x", mStartTime));
+				
+		mServiceLink = mServerProtocol + mServerAddr + ":" + mServerPort;
+		
+		String sess = mService.createSessionInternally();
+		String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("?session=%s&version=%x", ""+sess, mStartTime);
+		mWebView.loadUrl(link);
 	    }
 	    else
 	    {
 		mServiceLink = "Service stopped";
 		mWebView.loadData("Service stopped", "text/html", "utf-8");
-		//mTextViewLog.setText("Server not active");
 	    }	
 	    updateTitle();
 	}
@@ -196,11 +201,19 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	webSettings.setJavaScriptEnabled(true);
 	
 	// make links open in the web view not in default browser:
-	mWebView.setWebViewClient(new WebViewClient() {
+	mWebView.setWebViewClient(new WebViewClient() 
+	{
 	    @Override
-	    public boolean shouldOverrideUrlLoading(WebView view, String url){
+	    public boolean shouldOverrideUrlLoading(WebView view, String url)
+	    {
 	      view.loadUrl(url);
 	      return true;
+	    }
+	    @Override
+	    public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error)
+	    {
+	        //super.onReceivedSslError(view, handler, error);
+		handler.proceed();
 	    }
 	});
 	
@@ -220,7 +233,8 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		public void onCloseWindow(WebView window)
 		{
 		    //super.onCloseWindow(window);
-		    window.loadUrl(mServiceLink + String.format("?v=%x", mStartTime));
+		    String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("?version=%x", mStartTime);
+		    window.loadUrl(link);
 		}
 	});
 	
@@ -316,9 +330,11 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		Log.v(TAG, "MSG_STATUS: " + msg.replyTo);
 		break;
 	    case GardenoidService.MSG_SRVADDR:
-		String addr = (String) msg.obj;
-		int port = null==mHttpServer ? -1 : mHttpServer.getListeningPort();
-		mServiceLink = "http://" + addr + ":" + port; 
+		mServerProtocol = (String) msg.obj;
+		//mServerAddr     = msg.arg1;
+		mServerPort     = msg.arg2;
+		//int port = null==mHttpServer ? -1 : mHttpServer.getListeningPort();
+		mServiceLink = mServerProtocol + mServerAddr + ":" + mServerPort; 
 		updateTitle();
 		break;
 	    case GardenoidService.MSG_MASK:
@@ -445,7 +461,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 
     
     
-    private NanoHTTPD mHttpServer;
+    private NanoHTTPD_SSL mHttpServer;
     //private TextView mTextViewLog;
     private ToggleButton mToggleButtonOnOff;
 
@@ -477,15 +493,20 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	{
 	    if (null!=mHttpServer && mHttpServer.isAlive())
 	    {
-		String url = mServiceLink + String.format("?v=%x", mStartTime); 
-		Intent i = new Intent(Intent.ACTION_VIEW);
-		i.setData(Uri.parse(url));
-		startActivity(i);
+		GardenoidService service = (null==mConnection) ? null : mConnection.mService;
+		String sess   = null==service ? null : service.createSessionInternally();
+		String link   = mServerProtocol + mServerAddr + ":" + mServerPort + String.format("/login.html?session=%s&version=%x", ""+sess, mStartTime);		
+		Intent intent = new Intent(Intent.ACTION_VIEW);
+		intent.setData(Uri.parse(link));
+		startActivity(intent);
 	    }
 	} 
 	else if (item.getItemId()==R.id.menuReload)
 	{
-	    mWebView.loadUrl(mServiceLink + String.format("?v=%x", U.millis()));
+	    GardenoidService service = (null==mConnection) ? null : mConnection.mService;
+	    String sess  = null==service ? null : service.createSessionInternally();
+	    String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("/login.html?session=%s&version=%x", ""+sess, mStartTime);
+	    mWebView.loadUrl(link);
 	    mWebView.reload();
 	} 
 	return false;

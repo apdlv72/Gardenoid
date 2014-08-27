@@ -6,6 +6,7 @@ var updateOngoing        = false;
 var global_action = null; 
 var global_id     = null;
 
+
 function show_dialog_in_viewport()
 {
 	var dialog = $("#idDialog");
@@ -368,24 +369,10 @@ function confirm_deletion()
 
 function rest_success(operation, id)
 {
-	//if (operation=="insert") alert("Schedule added");
-	//if (operation=="update") alert("Schedule updated");
-	//if (operation=="delete") alert("Schedule deleted");
 	log("rest_success: operation=" + operation + ", id=" +  id);
-	/*
-	if (window.opener)
-	{
-		log("asking window.opener to update schedules"); 
-		window.opener.update_schedules(operation, id);
-		window.close();
-	}
-	else
-	*/
-	{
-		log("rest_success: calling update_schedules(" + operation + "," + id + ")");
-		update_schedules(operation, id);
-		$("#idDialog").hide();
-	}					
+	log("rest_success: calling update_schedules(" + operation + "," + id + ")");
+	update_schedules(operation, id);
+	$("#idDialog").hide();
 }
 
 

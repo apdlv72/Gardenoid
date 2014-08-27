@@ -5,11 +5,12 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StreamCorruptedException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,6 +28,11 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocketFactory;
+
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -58,9 +64,9 @@ import com.apdlv.yahooweather.Forecast;
 import com.apdlv.yahooweather.ForecastProvider;
 import com.apdlv.yahooweather.WeatherConditions;
 
-import fi.iki.elonen.NanoHTTPD;
-//import com.apdlv.gardenoid.MyJson.JArray;
 import fi.iki.elonen.NanoHTTPD_SSL;
+//import fi.iki.elonen.NanoHTTPD_SSL;
+//import com.apdlv.gardenoid.MyJson.JArray;
 
 /**
  * A service running in the background and implementing kind of a HTTP to bluetooth gateway.
@@ -87,6 +93,11 @@ public class GardenoidService extends Service
     public final static SimpleDateFormat RFC1123FORMAT = new SimpleDateFormat(RFC1123_PATTERN, LOCALE_US);
     public final static TimeZone GMT_ZONE = TimeZone.getTimeZone("GMT");
 
+    private String mProtocol = "undefined";
+    private String mAddress  = "undefined";
+    private int    mPort     = -1;		
+
+    
     private CommandQueue.Command sendEffectiveMaskToControllerAndActivity(int mask)
     {
 	String command = String.format("M%x", mask);
@@ -106,8 +117,105 @@ public class GardenoidService extends Service
 	mVisibleDevicesDiscovering =  new HashSet<BluetoothDevice>();
 	mForecastProvider = new ForecastProvider();
     }
+    
+    private class Cookie
+    {
+	private long    mExpires;
+	private boolean mAuthorized;
+	private boolean mInternal;
+	private String  mName;
 
-    class OneTimeSchedule
+	public Cookie(String name)
+	{
+	    mName       = name;
+	    mExpires    = -1;
+	    mAuthorized = mInternal = false;
+	}
+
+	public boolean isExpired() 
+	{
+	    return U.millis()>mExpires;
+	}
+
+	public boolean isAuthorized()
+	{
+	    return mAuthorized;
+	}
+
+	public void setAuthorized(boolean authorized)
+	{
+	    mAuthorized = authorized;
+	}
+
+	public void prolong(int secs)
+	{
+	    mExpires = U.millis()+1000*secs;
+	}
+
+	public String getName()
+	{
+	    return mName;
+	}
+
+	public String toString()
+	{
+	    long now = U.millis();
+	    long ttl = mExpires<=now ? 0 : mExpires-now;
+	    return "Cookie[name=" + mName + ", auth=" + mAuthorized + ",ttl=" + ttl + ", sess=" + mInternal + "]";
+	}
+
+	public void setInternal()
+        {
+	    mInternal = true; 
+        }
+    }
+
+    public String createSessionInternally()
+    {
+	synchronized (mCookies)
+	{	    
+	    Cookie c = createCookie(true /* internal */);
+	    c.setAuthorized(true);
+	    c.setInternal();
+	    return c.getName();	    
+	}
+    }
+
+    private Map<String,Cookie> mCookies = new HashMap<String,Cookie>();
+	
+    private Cookie createCookie(boolean session)
+    {
+	synchronized (mCookies)
+	{	    
+	    // create a list of cookies that expired
+	    HashSet<String> removed = new HashSet<String>();
+	    for (Cookie c :mCookies.values())
+	    {
+		if (c.isExpired()) removed.add(c.getName());
+	    }
+
+	    // and clean them up
+	    for (String name : removed)
+	    {
+		mCookies.remove(name);
+	    }
+
+	    // before trying to create a new key that does not yet exist
+	    String name = null;
+	    do
+	    {
+		name = (session ? "session" : "auth") + "_" + (""+Math.random()).replace(".", "");
+	    }
+	    while (mCookies.containsKey(name));
+
+	    Cookie cookie = new Cookie(name);
+	    mCookies.put(name, cookie);
+	    return cookie;
+	}
+    }
+
+
+    private class OneTimeSchedule
     {
 	public OneTimeSchedule(int strandNo, long endtimeUnix)
 	{
@@ -481,7 +589,52 @@ public class GardenoidService extends Service
 	    File externalDir = getExternalFilesDir(TemplateEngine.DIR_PREFIX_WEBPAGES);
 	    mTemplateEngine = new TemplateEngine(mAssetManager, externalDir);
 
-	    mHttpServer = new MyHTTPD();
+	    SSLServerSocketFactory socketFactory = null;
+	    // http://stackoverflow.com/questions/21077273/nanohttpd-and-ssl
+	    try 
+	    {
+		//String type = KeyStore.getDefaultType(); // "BKS"
+		String type = "BKS";
+		//String type = "PKCS12";
+		
+		InputStream certFile = getAssets().open("ssl/gardenoid." + type);
+	        if (certFile != null) 
+	        {
+	            String PASSWORD = "test99";	            
+	            //String type = "BKS"; // KeyStore.getDefaultType();
+	            KeyStore keyStore = KeyStore.getInstance(type);
+	            //KeyStore keyStore = KeyStore.getInstance(type);
+	            keyStore.load(certFile, PASSWORD.toCharArray());
+	            
+	            KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+	            factory.init(keyStore, PASSWORD.toCharArray());
+	            
+	            SSLContext context = SSLContext.getInstance("SSL");
+	            context.init(factory.getKeyManagers(), null, new SecureRandom());
+	            socketFactory = context.getServerSocketFactory();
+	        }
+	    }
+	    catch (Exception e)
+	    {
+		System.err.println("onCreate: " + e);
+	    }
+	    
+	    if (socketFactory!=null)
+	    {
+		mProtocol   = "https://";
+		mAddress    = getAddress();
+		mPort       = 8080;
+		mHttpServer = new MyHTTPD(mPort);
+		mHttpServer.makeSecure(socketFactory);
+	    }
+	    else
+	    {
+		mProtocol   = "http://";
+		mAddress    = getAddress();
+		mPort       = 8080;		
+		mHttpServer = new MyHTTPD(mPort);
+	    }
+	    
 	    mHttpServer.start();
 	    mConnectThread = new ConnectThread(GardenoidService.this, true);
 	    mConnectThread.start();
@@ -672,22 +825,7 @@ public class GardenoidService extends Service
 		boolean change = setPoweredOnSchedules(on); 
 		if (change)
 		{
-		    System.out.println("checkSchedules: Schedules status changed: " + mPoweredOnSchedules);
-
-		    if (mActiveStrandsMask!=newMask)
-		    {
-			System.out.println("checkSchedules: Strand status changed: mask=" + newMask);			
-		    }
-		    else
-		    {
-			System.out.println("checkSchedules: Strand status remains the same: mask=" + newMask);
-		    }
-
-		    Weather w = mDao.getWeather(2*60*60); // accept up to 2 hours old waether conditions 
-		    String json = null==w ? null : w.toJson();
-
-		    Event event = new Event(newMask, "schedule", json);
-		    mDao.addEvent(event);
+		    onScheduleChange(on, newMask);
 		}
 
 		// now wait until the arduino processed the command and returned his ack
@@ -714,6 +852,30 @@ public class GardenoidService extends Service
 		mService.onScheduleCheckThreadDone(this);
 	    }
 	}
+
+        private void onScheduleChange(List<Schedule> on, int newMask)
+        {
+	    System.out.println("checkSchedules: Schedules status changed: " + mPoweredOnSchedules);
+
+	    if (mActiveStrandsMask!=newMask)
+	    {
+		System.out.println("checkSchedules: Strand status changed: mask=" + newMask);			
+	    }
+	    else
+	    {
+		System.out.println("checkSchedules: Strand status remains the same: mask=" + newMask);
+	    }
+
+	    StringBuilder sb = new StringBuilder();
+	    for (Schedule s : on)
+	    {
+	    sb.append(sb.length()>0 ? "," : "").append(s.toJson());
+	    }		    
+	    String json = "{\"on\" : [" + sb.toString() + "]}";
+	    		    
+	    Event event = new Event(newMask, "onScheduleChange", json);
+	    mDao.addEvent(event);
+        }
 
 	private List<Schedule> getActiveSchedulesWithRetry()
 	{
@@ -873,7 +1035,10 @@ public class GardenoidService extends Service
 	    connectToLastDevice();
 
 	    // start the thread that monitors one time schedules with per second precision
-	    mOneTimeContainer.start();
+	    if (!mOneTimeContainer.isAlive())
+	    {
+		mOneTimeContainer.start();
+	    }
 	}
 	catch (Exception e)
 	{
@@ -910,6 +1075,9 @@ public class GardenoidService extends Service
 	//mHandler.obtainMessage(MSG_STATUS, -1, -1, "Hello!").sendToTarget();
 	int mask = mOneTimeContainer.getMask()|mActiveStrandsMask;			    
 	sendEffectiveMaskToControllerAndActivity(mask);
+	
+	int addr = -1;
+	mHandler.obtainMessage(MSG_SRVADDR, addr, mPort, mProtocol).sendToTarget();
     }
 
 
@@ -921,7 +1089,7 @@ public class GardenoidService extends Service
 	}
     }
 
-    public NanoHTTPD getHttpServer()
+    public NanoHTTPD_SSL getHttpServer()
     {
 	return mHttpServer;
     }    
@@ -1101,7 +1269,7 @@ public class GardenoidService extends Service
 	// not needed since using line-wise communication only
     }
 
-    public String getAddress()
+    public static String getAddress()
     {
 	try 
 	{
@@ -1125,7 +1293,7 @@ public class GardenoidService extends Service
 	} 
 	catch (SocketException ex) 
 	{
-	    log(ex);
+	    System.err.println(""+ex);
 	    return "error";
 	}
 	return "127.0.0.1";   
@@ -1452,7 +1620,7 @@ public class GardenoidService extends Service
 	}
     }
 
-    class MyHTTPD extends NanoHTTPD
+    class MyHTTPD extends NanoHTTPD_SSL
     {
 	/*
         class Status implements IStatus
@@ -1468,10 +1636,11 @@ public class GardenoidService extends Service
 	 */
 
 	private static final String TEMP_UNIT_CELSIUS = "c";
-	public final fi.iki.elonen.NanoHTTPD.Response.Status STATUS_200 = NanoHTTPD.Response.Status.OK; //new Status(200, "OK");
-	public final fi.iki.elonen.NanoHTTPD.Response.Status STATUS_301 = NanoHTTPD.Response.Status.REDIRECT; // new Status(301, "Redirect");
-	public final fi.iki.elonen.NanoHTTPD.Response.Status STATUS_404 = NanoHTTPD.Response.Status.NOT_FOUND; //new Status(404, "Not found");
-	public final fi.iki.elonen.NanoHTTPD.Response.Status STATUS_500 = NanoHTTPD.Response.Status.INTERNAL_ERROR; // new Status(501, "Internal server error");
+	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_200 = NanoHTTPD_SSL.Response.Status.OK; //new Status(200, "OK");
+	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_301 = NanoHTTPD_SSL.Response.Status.REDIRECT; // new Status(301, "Redirect");
+	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_401 = NanoHTTPD_SSL.Response.Status.UNAUTHORIZED; // new Status(301, "Redirect");
+	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_404 = NanoHTTPD_SSL.Response.Status.NOT_FOUND; //new Status(404, "Not found");
+	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_500 = NanoHTTPD_SSL.Response.Status.INTERNAL_ERROR; // new Status(501, "Internal server error");
 	public final String CT_TEXT_PLAIN   = "text/plain";
 	public final String CT_TEXT_HTML    = "text/html;charset=UTF-8";
 	public final String CT_TEXT_JSON    = "text/json";
@@ -1482,9 +1651,9 @@ public class GardenoidService extends Service
 	public final String CT_JAVASCRIPT   = "application/javascript";
 	public final String CT_CSS          = "text/css";
 
-	public MyHTTPD() 
+	public MyHTTPD(int port) 
 	{
-	    super(8080);
+	    super(port);
 	}
 
 	private String getCurrentPeer()
@@ -1501,7 +1670,7 @@ public class GardenoidService extends Service
 	    return null;
 	}
 
-	private Response serveRest(IHTTPSession session, String resource, Map<String, String> params) throws ParseException, JSONException	
+	private Response serveRest(String resource, Map<String, String> params) throws ParseException, JSONException	
 	{
 	    StringBuilder msg      = new StringBuilder();	
 
@@ -1512,15 +1681,16 @@ public class GardenoidService extends Service
 	    }
 	    else if (resource.startsWith("/strand/rename"))
 	    {
-		String idStr   = params.get("no");
-		String name = params.get("new");
+		String tid  = params.get("tid");
+		String name = params.get("name");
+		String str  = params.get("no");		
+		int    no   = Integer.parseInt(str);
 		
-		int id = Integer.parseInt(idStr);
-		mDao.addOrUpdateStrand(id, name);
+		mDao.addOrUpdateStrand(no, name, tid);
 		
 		// send time of last config update so the instance that caused this change
 		// may update this information in order not to force a relaod 
-		msg.append(new JSONObject().put("no", id).put("name", name).put("reconfig", mDao.getLastReconfigTime()).toString());
+		msg.append(new JSONObject().put("no", no).put("name", name).put("reconfig", mDao.getLastReconfigId()).toString());
 	    }
 	    else if (resource.startsWith("/weather/compact"))
 	    {
@@ -1615,6 +1785,9 @@ public class GardenoidService extends Service
 		    }
 		}
 		msg.append("]}"); 
+		Response r = new Response(STATUS_200, CT_TEXT_JSON, msg.toString());
+		r.addHeader("Refresh", "10"); // auto update every 10s
+		return r;
 	    }
 	    else if (resource.startsWith("/discover/start"))
 	    {		 
@@ -1658,7 +1831,7 @@ public class GardenoidService extends Service
 		    msg.append("{ \"success\" : ").append(success).append(", \"error\": \"").append(error).append("\" }");
 		}
 
-		Response r = new Response(NanoHTTPD.Response.Status.OK, CT_TEXT_JSON, msg.toString());
+		Response r = new Response(NanoHTTPD_SSL.Response.Status.OK, CT_TEXT_JSON, msg.toString());
 		return r;
 	    }
 	    else if (resource.startsWith("/connection/stop"))
@@ -1835,18 +2008,19 @@ public class GardenoidService extends Service
 
 		boolean changed = false;
 		int     onetimeMask = 0;
-		for (int trials=40; trials>0 && !changed; trials--)
+		// 100 * 100ms = 10secs
+		for (int trials=100; trials>0 && !changed; trials--)
 		{
 		    onetimeMask = mOneTimeContainer.getMask();
 		    if (0==trials%10)
 		    {
 			if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		    }
-		    newFingerprint = "" + mServiceVersion + "_" + mDao.getLastReconfigTime() + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
+		    newFingerprint = "" + mServiceVersion + "_" + mDao.getLastReconfigId() + "_" + isConnected() + "_" + isDiscovering() + "_" + U.urlEncode(getCurrentPeer()) + "_" + (mActiveStrandsMask|onetimeMask) + "_" + mOneTimeContainer.getLastChangeTime();    
 		    changed = !newFingerprint.equalsIgnoreCase(oldFingerprint);
 		    if (!changed)
 		    {
-			U.mSleep(50);
+			U.mSleep(100);
 			//U.mSleep(4*250);
 		    }        	    
 		}
@@ -1858,7 +2032,7 @@ public class GardenoidService extends Service
 		// version will let HTML frontend detect when to reload the whole page because of reinstall:
 		// adding last strand update time to make page reload when strand names were changed
 		msg.append(", \"version\":\"").append(mServiceVersion).append("\"");  
-		msg.append(", \"reconfig\":\"").append(mDao.getLastReconfigTime()).append("\"");  
+		msg.append(", \"reconfig\":\"").append(mDao.getLastReconfigId()).append("\"");  
 		msg.append(", \"discovering\":").append(isDiscovering());
 		msg.append(", \"connected\":").append(isConnected());
 		msg.append(", \"peer\":").append(MyJson.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
@@ -1871,7 +2045,7 @@ public class GardenoidService extends Service
 		msg.append(", \"onetimeList\":").append(mOneTimeContainer.toJson(nowUnixtime));
 		msg.append("}\n");
 
-		Response r = new Response(STATUS_200, CT_TEXT_PLAIN, msg.toString());
+		Response r = new Response(STATUS_200, CT_TEXT_JSON, msg.toString());
 		r.addHeader("Pragma", "no-cache");
 		if (DEBUG_ONETIME_CONTAINER)
 		{
@@ -1989,7 +2163,7 @@ public class GardenoidService extends Service
 		    sb.append("\n  ]");	            
 		    sb.append("\n}");	            
 
-		    Response r = new Response(STATUS_301, CT_TEXT_JSON, sb.toString());
+		    Response r = new Response(STATUS_200, CT_TEXT_JSON, sb.toString());
 		    r.addHeader("Pragma", "no-cache");
 		    return r;
 		} 
@@ -2025,38 +2199,119 @@ public class GardenoidService extends Service
 	    return day;
 	}
 
-	@Override 
-	public Response serve(IHTTPSession session) 
-	{
-	    try
-	    {
-		return serveUnsecurely(session);
-	    }
-	    catch (Exception e)
-	    { 
-		e.printStackTrace();
-		return new Response(STATUS_500, CT_TEXT_PLAIN, ""+e);
-	    }
-	}
+//	@Override 
+//	public Response serve(IHTTPSession session) 
+//	{
+//	    try
+//	    {
+//		return serveUnsecurely(session);
+//	    }
+//	    catch (Exception e)
+//	    { 
+//		e.printStackTrace();
+//		return new Response(STATUS_500, CT_TEXT_PLAIN, ""+e);
+//	    }
+//	}
 
 	final private String FAVICON_B64 = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=";
 	final private byte[] FAVICON_DATA = Base64.decode(FAVICON_B64,Base64.DEFAULT);
 
-	public Response serveUnsecurely(IHTTPSession session) throws ParseException, JSONException 
+//	public Response serveUnsecurely(IHTTPSession session) throws ParseException, JSONException
+//	{
+//	    Method method = session.getMethod();
+//	    String uri    = session.getUri();
+//	    return serveUnsecurely(method, uri);
+//	}
+	
+	private String mTempUnit = "C"; // celsius
+	private Cookie getOrCreateCookie(Map<String, String> headers)
 	{
-	    Method method = session.getMethod();
-	    String uri    = session.getUri();            
-
+	    String name   = headers.get("cookie");
+	    Cookie cookie = (null==name) ? null : mCookies.get(name);	    
+	    if (null==cookie)
+	    {
+		cookie = createCookie(false /* normal cookie, not session */);
+	    }
+	    cookie.prolong(600);
+	    return cookie;
+	}
+	
+	public Cookie getSession(Map<String, String> params)
+	{
+	    synchronized (mCookies)
+	    {
+		return mCookies.get(params.get("session"));
+	    }
+	}
+	
+	public Response serveUnsecurely(Method method, String uri, Map<String, String> params, Map<String, String> headers, String remoteAddr) throws ParseException, JSONException 
+	{
 	    if (uri.startsWith("/favicon.ico"))
 	    {
 		return new Response(STATUS_200, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
 	    }
 
-	    System.out.println("serve: " + method + " '" + uri + "' ");	    
+	    Cookie session = getSession(params);	    
+	    Cookie cookie  = getOrCreateCookie(headers);
+	    if (null!=session && session.isAuthorized())
+	    {
+		cookie.setAuthorized(true);
+	    }	    	    
+	    if (remoteAddr.startsWith("127.0.0.1"))
+	    {
+		// do not require authentication from localhost (webview in activity)
+		cookie.setAuthorized(true);
+	    }
+	    
+	    if (!uri.startsWith("/rest"))
+	    {
+		// just for setting break point here for regular pages 
+                uri += "";
+	    }
+	    
+	    if (uri.endsWith("/login.html"))
+	    {
+		String user   = params.get("user");
+		String pass   = params.get("pass");
+		
+		boolean authorized = cookie.isAuthorized() || (U.matches("art",user) && U.matches("test99",pass));						
+		if (authorized) 
+		{
+		    cookie.setAuthorized(authorized);
+		    Response r = new Response(STATUS_301, CT_TEXT_PLAIN, "Login sucessful");
+		    r.addHeader("Location", "/");
+		    r.addHeader("Set-Cookie", cookie.getName());
+		    return r;		    		    
+		}
+		
+		Map<String, String> map = new HashMap<String, String>(1); 
+		map.put("version", mServiceVersion);
+		String page = mTemplateEngine.render(uri, map);
+		Response r = new Response(STATUS_200, CT_TEXT_HTML, page);
+		r.addHeader("Set-Cookie", cookie.getName());
+		return r;
+	    }
+
+	    if (cookie.isExpired() || !cookie.isAuthorized())
+	    {
+		if (uri.endsWith(".html") || uri.equals("/") || uri.equals(""))
+		{
+		    Response r = new Response(STATUS_301, CT_TEXT_PLAIN, "Need to log in first.");
+		    r.addHeader("Location", "/login.html");
+		    return r;
+		} 
+		// no authorization required for CSS (e.g. on login page)
+		else if (!uri.endsWith(".css") && !uri.endsWith(".png"))
+		{
+		    return new Response(STATUS_401, "text/plain", "Authorization required");
+		}
+	    }
+	    
+	    System.out.println("serve: " + method + " '" + uri + "', cookie=" + cookie);	    
 	    if (uri.startsWith("/rest"))
 	    {
 		String resource = uri.substring(5);        	
-		return serveRest(session, resource, session.getParms());
+		return serveRest(resource, params);
 	    }
 	    else if (uri.startsWith("/api"))
 	    {		
@@ -2121,11 +2376,11 @@ public class GardenoidService extends Service
 		msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
 
 		msg.append("</body></html>");
-		return new NanoHTTPD.Response(STATUS_200, CT_TEXT_HTML, msg.toString());		
+		return new NanoHTTPD_SSL.Response(STATUS_200, CT_TEXT_HTML, msg.toString());		
 	    }
 	    else if (uri.startsWith("/schedules/add"))
 	    {
-		Map<String, String> map = session.getParms();
+		Map<String, String> map = params;
 
 		int strandMask = 0;
 		for (int n=1; n<8; n++)
@@ -2203,7 +2458,7 @@ public class GardenoidService extends Service
 		return r;
 	    }
 
-	    Map<String, String> params = session.getParms();
+	    //Map<String, String> params = session.getParms();
 
 	    String page     = null;
 	    String template = uri; 
@@ -2313,8 +2568,9 @@ public class GardenoidService extends Service
 	    }
 
 	    Map<String, String> map = this.toMap();
+	    map.put("cookie",       cookie.getName());
 	    map.put("conditionals", Conditional.CONDITIONALS_JSON);        
-	    map.put("version", mServiceVersion);
+	    map.put("version",      mServiceVersion);
 	    map.putAll(params);
 
 	    page = mTemplateEngine.render(uri, map);
@@ -2389,6 +2645,7 @@ public class GardenoidService extends Service
 	    m.put("nonce",       ""+Math.random());
 	    m.put("discovering", ""+isDiscovering());
 	    m.put("connected",   ""+isConnected());
+	    m.put("unit_t", mTempUnit); 
 	    String[] nameAddr = getConnectedNameAndAddr();
 	    if (null!=nameAddr)
 	    {
@@ -2479,12 +2736,33 @@ public class GardenoidService extends Service
 	    return false;
 	}
 
+	@Override
+        public Response serve(String uri, Method method, Map<String, String> headers, Map<String, String> parms, Map<String, String> files, String remoteAddr)
+        {
+	    try
+	    {
+		long t1 = U.millis();
+		Response r = serveUnsecurely(method, uri, parms, headers, remoteAddr);
+		long t2 = U.millis();
+		
+		System.out.println("serve: " + method + " " + uri + " in " + (t2-t1) + " ms");
+		
+		return r;
+	    }
+	    catch (Exception e)
+	    { 
+		e.printStackTrace();
+		return new Response(STATUS_500, CT_TEXT_PLAIN, ""+e);
+	    }
+        }
+
     }
     
     @Override
-    public boolean stopService(Intent name)
+    public boolean stopService(Intent intent)
     {
-        boolean rc = super.stopService(name);
+	mDao.addEvent(new Event("stopService", "action", intent.getAction()));
+        boolean rc = super.stopService(intent);
         this.stopHttp();
         this.stopSelf();
         return rc;

@@ -97,4 +97,10 @@ public class U
 	return null==s ? "" : URLEncoder.encode(s);
     }
 
+    public static boolean matches(String a, String b)
+    {
+	// TODO Auto-generated method stub
+	return null!=a && null!=b && a.equals(b);
+    }
+
 }

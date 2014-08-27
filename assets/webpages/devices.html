@@ -4,14 +4,14 @@
 <html>
   <head>
     <title>Devices</title>    
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/gardenoid.js"></script>
-    <script src="/js/devices.js"></script>                
-    <link rel="stylesheet" href="/css/gardenoid.css" type="text/css" charset="utf-8"/>    
+    <!-- not using abs. paths -> preview page on disc //-->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/gardenoid.js"></script>
+    <script src="js/devices.js"></script>                
+    <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>    
     <!-- order matters. below js will overwrite some functions of generic one above. //-->
-    <link rel="stylesheet" href="/css/devices.css"   type="text/css" charset="utf-8"/>    
-  </head>
-  
+    <link rel="stylesheet" href="css/devices.css"   type="text/css" charset="utf-8"/>    
+  </head>  
   <body>  	
 	<!-- header menu //-->
   	<div id="status" class="status_unknown">
@@ -22,16 +22,13 @@
 			<div style="margin: 5px"><a href="/index.html?nonce={{nonce}}"><img id="cancelImage" src="/img/cancel.png" width="32" height="32" /></a></div>
 		    <span class="stretch"> </span>
 	   </div>
-	</div>
-	
+	</div>	
   	<!-- content (empty initially, will be filled by java script)//-->
   	<div id="divDevices" style="margin-top:3em; margin-bottom:1em;">
-  	</div>
-  	  	
+  	</div>  	  	
 	<div style="text-align: center; color: #ffffff; margin-bottom:4em;">
     	<a href="javascript:update_devices()">[UPDATE]</a>
-    </div>
-    
+    </div>    
   	<!-- footer menu //-->
   	<div class="menu">
   		<div class="spread">
@@ -48,15 +45,13 @@
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
-
+	<!-- json errors //-->
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>  	
-  </body>
-  
+  </body>  
   <script>
    	$(document).ready(update_status());
 	$(document).ready(update_devices());
    	window.setInterval(update_time, 1000);		    		 	
-  </script>
-  
+  </script>  
 </html>

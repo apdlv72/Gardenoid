@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
@@ -153,6 +154,9 @@ public abstract class NanoHTTPD_SSL {
                     try {
                         final Socket finalAccept = myServerSocket.accept();
                         final InputStream inputStream = finalAccept.getInputStream();
+                        final SocketAddress addr = finalAccept.getRemoteSocketAddress();
+                        final String remoteAddress = ("" + addr).replaceAll(".*/","");
+                        
                         if (inputStream == null) {
                             safeClose(finalAccept);
                         } else {
@@ -163,7 +167,7 @@ public abstract class NanoHTTPD_SSL {
                                     try {
                                         outputStream = finalAccept.getOutputStream();
                                         TempFileManager tempFileManager = tempFileManagerFactory.create();
-                                        HTTPSession session = new HTTPSession(tempFileManager, inputStream, outputStream);
+                                        HTTPSession session = new HTTPSession(tempFileManager, inputStream, outputStream, remoteAddress);
                                         while (!finalAccept.isClosed()) {
                                             session.execute();
                                         }
@@ -213,10 +217,11 @@ public abstract class NanoHTTPD_SSL {
      * @param method "GET", "POST" etc.
      * @param parms  Parsed, percent decoded parameters from URI and, in case of POST, data.
      * @param headers Header entries, percent decoded
+     * @param remoteAddr 
      * @return HTTP response, see class Response for details
      */
     public abstract Response serve(String uri, Method method, Map<String, String> headers, Map<String, String> parms,
-                                   Map<String, String> files);
+                                   Map<String, String> files, String remoteAddr);
 
     /**
      * Override this to customize the server.
@@ -242,7 +247,9 @@ public abstract class NanoHTTPD_SSL {
         Method method = session.getMethod();
         Map<String, String> parms = session.getParms();
         Map<String, String> headers = session.getHeaders();
-        return serve(uri, method, headers, parms, files);
+        String addr = session.getRemoteAddress();
+        
+        return serve(uri, method, headers, parms, files, addr);
     }
 
     /**
@@ -688,13 +695,22 @@ public abstract class NanoHTTPD_SSL {
         private Map<String, String> parms;
         private Map<String, String> headers;
 
-        public HTTPSession(TempFileManager tempFileManager, InputStream inputStream, OutputStream outputStream) {
+	private String remoteAddress;
+
+        public HTTPSession(TempFileManager tempFileManager, InputStream inputStream, OutputStream outputStream, String remoteAddress) {
             this.tempFileManager = tempFileManager;
             this.inputStream = inputStream;
             this.outputStream = outputStream;
+            this.remoteAddress = remoteAddress;
         }
 
-        public void execute() throws IOException {
+        public String getRemoteAddress()
+        {
+	    // TODO Auto-generated method stub
+            return this.remoteAddress;
+        }
+
+	public void execute() throws IOException {
             try {
                 // Read the first 8192 bytes.
                 // The full header should fit in here.

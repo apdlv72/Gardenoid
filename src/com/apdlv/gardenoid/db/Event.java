@@ -98,13 +98,13 @@ public class Event
 	this(-1,date,activeMask,message, json);
     }
 
-    public Event(int id, Calendar datetime, int activeMask, String message, String conditions)
+    public Event(int id, Calendar datetime, int activeMask, String message, String json)
     {
 	this.id = id;
 	this.datetime = datetime;
 	this.activeMask = activeMask;
 	this.message = message;
-	this.json = conditions;
+	this.json = json;
     }
 
     public Calendar getDate()

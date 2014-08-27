@@ -1,6 +1,8 @@
 
 var lastVersion     = null;
 var lastReconfig    = null;
+// (global) transaction ID identifies a reconfig request
+var lastReconfigTid = null;    
 var lastFingerprint = null;	
 var lastOnetimeList = [];
 var timeSkew        = 0;
@@ -192,7 +194,11 @@ function receive_status(data)
 	    } 		    
 	    if (lastReconfig!=null && lastReconfig!=newReconfig)
 	    {
-	    	location.reload(true);
+	    	// do not update if config was issued by this instance
+	    	if (lastReconfigTid==null || lastReconfigTid!=newReconfig)
+	    	{
+	    		location.reload(true);
+	    	}
 	    } 		    
 	    lastVersion  = newVersion;
 	    lastReconfig = newReconfig

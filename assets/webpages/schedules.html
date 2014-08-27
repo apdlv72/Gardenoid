@@ -3,33 +3,15 @@
 <html>
   <head>
     <title>Gardenoid Schedules</title>
-<!--        
-    <script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
-	<script src="http://code.jquery.com/mobile/1.4.2/jquery.mobile-1.4.2.min.js"></script>
-//-->
+    <!-- not using abs. paths -> preview page on disc //-->
     <script src="js/jquery.min.js"></script>
     <script src="js/gardenoid.js"></script>
     <script src="js/conditionals.js"></script>    
-    <script src="js/schedules.js"></script>
-        
+    <script src="js/schedules.js"></script>        
     <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>         
     <link rel="stylesheet" href="css/schedules.css" type="text/css" charset="utf-8"/>
-             
-<!--        
-    <script>    
-$("body").on("swipeleft",function(){
-  alert("You swiped left!");
-});
-$("body").on("swiperight",function(){
-  alert("You swiped right!");
-});
-     </script>
-//-->
-             
-  </head>
-  
-  <body>
-		
+  </head>  
+  <body>		
 	<!-- header menu //-->
   	<div id="status" class="status_unknown">
   		<div class="spread">
@@ -40,20 +22,15 @@ $("body").on("swiperight",function(){
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
-  	
+  	<!-- spacer //-->
   	<div style="height:48px;"> </div>
-
-
   	<!-- content (empty initially, will be filled with template instances)//-->
   	<div id="idSchedules" style="margin-top:.5em; margin-bottom: .5em;">
-  	</div>
-  	
-  	<!-- this div hides the template dom //-->
-  	<div id="divSchedulesNew" class="hideTemplate" style="display:none">
-  		
+  	</div>  	
+  	<!-- div hiding the template dom //-->
+  	<div id="divSchedulesNew" class="hideTemplate" style="display:none">  		
   		<!-- template dom //-->
   		<div id="idScheduleTemplate" class="schedule" style="padding:.25em;" onclick="do_edit_schedule(this)">
-
   			<div class="spread" id="monthDiv" style="margin-top:10px; margin-bottom:10px;">  		  				
 				<div name="month1"  class="month">1</div>
 				<div name="month2"  class="month">2</div>
@@ -68,11 +45,10 @@ $("body").on("swiperight",function(){
 				<div name="month11" class="month">11</div>
 				<div name="month12" class="month">12</div>
 			    <span class="stretch"> </span>
-			</div>
-		  	
+			</div>		  	
 		  	<div class="spread" style="">
 			    <div style="font-size:18px">
-	  					<span class="startTime">??:??</span>-<span class="endTime">??:??</span>
+	  				<span class="startTime">??:??</span>-<span class="endTime">??:??</span>
 			    </div>
 			    <div>
 					<div name="strand1" class="strand">A</div>
@@ -85,7 +61,7 @@ $("body").on("swiperight",function(){
 					<div name="strand8" class="strand">H</div>
 			    </div>
 			    <div style="font-size:12px;">
-	  					every <span class="interval">01:00</span> for <span class="duration">00:15</span>
+	  				every <span class="interval">01:00</span> for <span class="duration">00:15</span>
 	  			</div>
 			    <span class="stretch"> </span>
 			</div>
@@ -98,8 +74,7 @@ $("body").on("swiperight",function(){
 				<div name="day6" class="day">Fri</div>
 				<div name="day7" class="day">Sat</div> 
 			    <span class="stretch">Y</span>
-		  	</div>
-		  	
+		  	</div>		  	
 		  	<div style="clear: left; text-align: center;">
 		  		<span class="conditionElem">
 		  			IF <span class="conditionText">true</span> 
@@ -107,11 +82,9 @@ $("body").on("swiperight",function(){
 		  		<span class="exceptionElem">
 			  		UNLESS <span class="exceptionText">false</span>
 			  	</span>
-		  	</div>
-		  	
+		  	</div>		  	
 	  	</div>	  	
-  	</div>  	
-  	
+  	</div>  	  	
   	<!-- footer menu //-->
   	<div class="menu">
   		<div class="spread">
@@ -130,24 +103,19 @@ $("body").on("swiperight",function(){
 	</div>
 
   	<!-- dialog (initially hidden) //-->
-  	<!--************************************************************************************************ //-->
-  	
-  	<div id="idDialog" style="position: absolute; top: 20px; display: none; background: black;">  	
-  	
-	  	<!-- header menu //-->
+  	<div id="idDialog" style="position: absolute; top: 20px; display: none; background: black;">  	 	
+	  	<!-- dialog header menu //-->
 	  	<div id="idDialogHeader" class="dialog_header">
 	  		<div class="spread">
 				<div style="margin: 5px"><a href="javascript:check_and_convert(null);"><img id="statusImage" src="img/ok.png"/></a></div>
 				<div id="idTitle" class="dialog_title">{{action}}</div>
-				<div style="margin: 5px"><a href="javascript:do_cancel_dialog();"><img id="cancelImage" src="img/cancel.png"/></a></div>
+				<div style="margin: 5px"><a href="javascript:do_cancel_dialog();"><img id="dialogCancelImage" src="img/cancel.png"/></a></div>
 			    <span class="stretch">&nbsp;</span>
 		   </div>
-		</div>
-	
-		<!-- content //-->
+		</div>	
+		<!-- dialog content //-->
 		<form method="get" onsubmit="return check_and_convert(this);">
-	  	<div>
-	
+	  	<div>	
 			<div class="schedule_category">			
 				<div class="category_title">Strands</div>  	
 	  			<div class="spread strand_list">
@@ -161,8 +129,7 @@ $("body").on("swiperight",function(){
 					<div>H<input type="checkbox" class="strand" name="strand8" value="128"/></div>
 				    <span class="stretch">&nbsp;</span>
 				</div>		
-		  	</div>
-		  			
+		  	</div>		  			
 			<div class="schedule_category">			
 				<div class="category_title">Days</div>  	
 	  			<div class="spread day_list">
@@ -175,8 +142,7 @@ $("body").on("swiperight",function(){
 					<div>Sat<input type="checkbox" class="day" name="day7" value="64"/></div>
 				    <span class="stretch">&nbsp;</span>
 				</div>		
-		  	</div>
-		  	  	
+		  	</div>		  	  	
 			<div class="schedule_category">			
 			    <div class="category_title">Months</div>  	
 	  			<div class="spread month_list">
@@ -197,24 +163,21 @@ $("body").on("swiperight",function(){
 					<div>Dec<input type="checkbox" class="month" name="month12" value="2048"/></div>
 				    <span class="stretch">&nbsp;</span>
 				</div>		
-		  	</div>
-	
+		  	</div>	
 			<div class="schedule_category">			
 				<div class="category_title">Time range</div>
 				<div>
 					<span class="fill_word">from</span><input type="text" name="startTime" size="6"/>
 					<span class="fill_word">to  </span><input type="text" name="endTime" size="6"/> 
 				</div>
-			</div>  	
-	  			
+			</div>  		  			
 			<div class="schedule_category">			
 				<div class="category_title">Repeat</div>
 				<div>
 					<span class="fill_word">every</span><input type="text" name="interval" size="6"/> 
 					<span class="fill_word">for  </span><input type="text" name="duration" size="6"/>
 				</div>
-			</div>  	
-	  			
+			</div>  		  			
 			<div class="schedule_category">			
 				<div class="category_title">Condition</div>
 				  <div>
@@ -260,41 +223,32 @@ $("body").on("swiperight",function(){
 								</div>
 							</td>
 						</tr>			
-					</table>
-					
+					</table>					
 				</div>
-			</div>
-				
+			</div>				
 		  	<!-- dialog footer menu //-->
 			<div id="idScheduleDialog" class="dialog_header spread" style="margin:0;">
-				<div style="margin: 5px"><a href="javascript:check_and_convert(null);"><img id="statusImage" src="img/ok.png"/></a></div>
+				<div style="margin: 5px"><a href="javascript:check_and_convert(null);"><img id="dialogStatusImage" src="img/ok.png"/></a></div>
 				<div>  	
 			  		<p style="text-align: right; width:100%; margintop:0; margin-bottom:0; margin-top:0;">  	  		
 			  			<a id="idDeleteButton" href="javascript:confirm_deletion();"><img src="img/delete.png" style="margin: 5px;" /></a>
 			  		</p>
 			  	</div>
 			  	<span class="stretch"> </span>
-		  	</div>				
-			  			
+		  	</div>							  		
 	  	</div>
 	    </form>
-
-  	</div> <!-- id="idDialog" -->  	
-  	
-  	<!--************************************************************************************************ //-->
-  	
-  	
+  	</div> 
+  	<!-- end of dialog -->  	
+  	<!-- json errors //-->  	
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>
-  	
-  	<div style="height:48px;"> </div>
-  	
-  </body>
-  
+  	<!-- spacr //-->
+  	<div style="height:48px;"> </div>  	
+  </body>  
   <script>
    	$(document).ready(update_status());
 	$(document).ready(update_schedules());
    	window.setInterval(update_time, 1000);		    		 	
-  </script>
-  
+  </script>  
 </html>

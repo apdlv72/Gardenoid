@@ -28,13 +28,16 @@ public class TemplateEngine
     {
 	try
 	{
-	    String page = getPage(templateName);	
-	    for (String key : map.keySet())
+	    String page = getPage(templateName);
+	    if (null!=page)
 	    {
-		String needle = "\\{\\{" + key + "\\}\\}";
-		String val = emptyIfNull(map.get(key));
-		val = val.replaceAll("\\$", "\\\\\\$");
-		page = page.replaceAll(needle, val);
+		for (String key : map.keySet())
+		{
+		    String needle = "\\{\\{" + key + "\\}\\}";
+		    String val = emptyIfNull(map.get(key));
+		    val = val.replaceAll("\\$", "\\\\\\$");
+		    page = page.replaceAll(needle, val);
+		}
 	    }
 	    return page;
 	}

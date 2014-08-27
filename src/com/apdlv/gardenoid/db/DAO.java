@@ -318,14 +318,14 @@ public class DAO extends SQLiteOpenHelper
         return id;
     }
     
-    private long mLastReconfigTime = -1;
+    private String mLastReconfigId = "none";
     
-    public long getLastReconfigTime()
+    public String getLastReconfigId()
     {
-	return mLastReconfigTime;
+	return mLastReconfigId;
     }
     
-    public synchronized long addOrUpdateStrand(long id, String name)
+    public synchronized long addOrUpdateStrand(long id, String name, String tid)
     {
         // 1. get reference to writable DB
         SQLiteDatabase db = this.getWritableDatabase();
@@ -354,13 +354,15 @@ public class DAO extends SQLiteOpenHelper
         // 4. close            
         db.close();
         
-        updateLastReconfigTime();
+        addEvent(new Event("strandRename", "id", id, "name", name));
+        
+        updateLastReconfigTime(tid);
         return id;
     }
 
-    private void updateLastReconfigTime()
+    private void updateLastReconfigTime(String tid)
     {
-	mLastReconfigTime = U.millis();
+	mLastReconfigId = tid;
     }
     
     private long updateCode(SQLiteDatabase db, long code, String url)
@@ -1235,8 +1237,8 @@ public class DAO extends SQLiteOpenHelper
     private static ContentValues codeToContentValues(long id, String url)
     {
 	ContentValues values = new ContentValues();
-	values.put("code",      id);
-	values.put("imgurl",    url);
+	values.put("code",    id);
+	values.put("imglink", url);
 	return values;
     }
     

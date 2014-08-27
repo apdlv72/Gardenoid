@@ -3,23 +3,22 @@
 <html>
   <head>
     <title>Gardenoid</title>    
+    <!-- not using abs. paths -> preview page on disc //-->
     <script src="js/jquery.min.js"></script>
     <script src="js/gardenoid.js"></script>
-    <!-- dynamic (generated) java script //-->
+    <!-- js generated (once) //-->
     <script src="js/conditionals.js"></script>    
-    <script src="js/strands.js"></script>    
+    <!-- js generated (dynamic) //-->
+    <script src="js/strands.js?{{nonce}}"></script>    
     <!-- order matters here. forecast.js will overwrite update_time() defined in gardenoid.js //-->        
     <script src="js/countdown.js"></script>
     <script>
-
+var global_cookie = "{{cookie}}";
     </script>
-                
     <link rel="stylesheet" href="css/gardenoid.css?version={{version}}" type="text/css" charset="utf-8"/>
     <link rel="stylesheet" href="css/countdown.css?version={{version}}" type="text/css" charset="utf-8"/>            
-  </head>
-  
-  <body>		
-			
+  </head>  
+  <body>					
 	<!-- header menu //-->
   	<div id="status" class="status_unknown">
   		<div class="spread">
@@ -30,9 +29,8 @@
 		    <span class="stretch"> </span>
 	   </div>
 	</div>  	
-
-  	<div style="height:48px;"> </div>
-  	
+	<!-- spacer //-->
+  	<div style="height:48px;"> </div>  	
   	<!-- dialog (initially hidden) //-->
 	<div id="idDialog" class="countdown_dialog">  			
 	  	<div class="dialog_menu">
@@ -41,9 +39,9 @@
 				<div>
 					<div id="idStrandName" onclick="edit_strand()" class="statusText" style="font-size: 18px; margin-top: 12px;">Strand</div>
 					<div id="idStrandNameEdit" style="font-size: 18px; margin-top: 12px; display:none;">
-						<form action="/strand/rename.html" onsubmit="return edit_strand_save();">
-							<input id="idStrandNameInput" name="name"   type="text"   value="Strand name" size="10">
-							<input name="submit" type="submit" value="save">
+						<form onsubmit="return edit_strand_save();">
+							<input id="idStrandNameInput" name="name"   type="text"   value="Strand name" size="10" style="font-size: 18px;">
+							<input type="image" src="/img/ok.png" height="20px">
 						</form>
 					</div>
 				</div>
@@ -51,9 +49,7 @@
 			    <span class="stretch"> </span>
 		   </div>
 		</div>
-
 		<div id="idStop" class="stop" onclick="javascript:set_time(this);">STOP</div>
-
 		<div style="padding: 1em;">
 	  		<div class="spread">
   				<div id="idTime5"    class="time" onclick="javascript:set_time(this);">5s</div>
@@ -71,8 +67,6 @@
 		    </div>
 	    </div>
 	</div>  		
-	
-  	
   	<!-- content //-->
   	<div style="margin-top: .5em; margin-bottom: .5em;">
   		
@@ -144,8 +138,7 @@
 	  		</div>			
 		</div>
 	  </div>
-  	</div>  	
-  	
+  	</div>  	  	
 	<!-- footer menu //-->
   	<div class="menu" >
   		<div class="spread">
@@ -164,18 +157,15 @@
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
-  	
+  	<!-- json errors //-->
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>
-  	
+  	<!-- spacer //-->
   	<div style="height:48px;"> </div>
-
-  </body>
-  
+  </body>  
   <script>
   	$(document).ready(set_strand_names());
    	$(document).ready(update_status());
    	window.setInterval(update_time, 1000);		    		 	
-  </script>
-  
+  </script>  
 </html>

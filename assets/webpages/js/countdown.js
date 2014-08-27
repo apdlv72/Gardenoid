@@ -132,16 +132,12 @@ function receive_rename(data)
 function edit_strand_save()
 {
 	var oldName = $("#idStrandName").text();
-	var newName = $("#idStrandNameInput")[0].value;
-	
-	if (oldName==newName)
-	{
-		return edit_strand_done();
-	}
-
-	var no  = strandInDialog;
-	var url = "/rest/strand/rename?no=" + no + "&old=" + encodeURIComponent(oldName) + "&new=" + encodeURIComponent(newName);
-	var request = $.getJSON(url, receive_rename);
+	var newName = $("#idStrandNameInput")[0].value;	
+	if (oldName==newName) return edit_strand_done();
+	// global:
+	lastReconfigTid = "" + global_cookie + "_" + (new Date()).getTime();
+	var url = "/rest/strand/rename?tid=" + lastReconfigTid + "&no=" + strandInDialog + "&name=" + encodeURIComponent(newName);
+	var request = $.getJSON(url, receive_rename);	
 	return false;
 }    
 
