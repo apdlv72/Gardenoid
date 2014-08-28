@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
   "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<!-- desktop={{desktop}} //-->
 <html>
   <head>
     <title>Gardenoid</title>    
@@ -20,7 +21,7 @@ var global_cookie = "{{cookie}}";
   </head>  
   <body>					
 	<!-- header menu //-->
-  	<div id="status" class="status_unknown">
+  	<div id="status" class="status_unknown" style="display:none">
   		<div class="spread">
 			<div style="margin: 5px"><a href="forecast.html?nonce={{nonce}}"><img id="forecastImage" src="img/arrow.png" /></a></div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
@@ -30,7 +31,7 @@ var global_cookie = "{{cookie}}";
 	   </div>
 	</div>  	
 	<!-- spacer //-->
-  	<div style="height:48px;"> </div>  	
+  	<div class="spacer" style="height:48px;" style="display:none"> </div>  	
   	<!-- dialog (initially hidden) //-->
 	<div id="idDialog" class="countdown_dialog">  			
 	  	<div class="dialog_menu">
@@ -140,7 +141,7 @@ var global_cookie = "{{cookie}}";
 	  </div>
   	</div>  	  	
 	<!-- footer menu //-->
-  	<div class="menu" >
+  	<div id="idFooter" class="menu" style="display:none">
   		<div class="spread">
 			<div style="margin: 5px;"><a href="javascript:select_device();"><img src="img/discover.png"></a></div>
 			<div >
@@ -150,6 +151,9 @@ var global_cookie = "{{cookie}}";
 				<div class="statusText" style="display: block;  height:1em;">
 					Version:<span id="statusVersion"> </span>
 				</div>
+			   <div class="statusText" style="display: block;  height:1em;">
+			   		<a href="/desktop.html" target="_top">[DESKTOP VERSION]</a>
+			   	</div>
 			</div>
 			<div style="margin: 5px">
 				<a href="javascript:show_api()"><img src="img/settings.png"/></a>
@@ -161,11 +165,23 @@ var global_cookie = "{{cookie}}";
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>
   	<!-- spacer //-->
-  	<div style="height:48px;"> </div>
+  	<div class="spacer" style="height:48px;" style="display:none"> </div>
   </body>  
   <script>
+  	if ("{{desktop}}"=="true")
+  	{
+  		$("#status").hide();
+  		$("#idFooter").hide();
+  		$(".spacer").hide();
+  	}
+  	else
+  	{
+  		$("#status").show();
+  		$("#idFooter").show();
+  		$(".spacer").show();
+	   	$(document).ready(update_status());
+	   	window.setInterval(update_time, 1000);		    		 	
+	}
   	$(document).ready(set_strand_names());
-   	$(document).ready(update_status());
-   	window.setInterval(update_time, 1000);		    		 	
   </script>  
 </html>

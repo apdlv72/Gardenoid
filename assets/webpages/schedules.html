@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
   "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<!-- desktop={{desktop}} //-->
 <html>
   <head>
     <title>Gardenoid Schedules</title>
@@ -13,7 +14,7 @@
   </head>  
   <body>		
 	<!-- header menu //-->
-  	<div id="status" class="status_unknown">
+  	<div id="status" class="status_unknown" style="display:none">
   		<div class="spread">
 			<div style="margin: 5px"><a href="javascript:do_add_schedule()"><img id="addImage" src="img/plus.png"/></a></div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
@@ -23,7 +24,7 @@
 	   </div>
 	</div>
   	<!-- spacer //-->
-  	<div style="height:48px;"> </div>
+  	<div class="spacer" style="height:48px;"> </div>
   	<!-- content (empty initially, will be filled with template instances)//-->
   	<div id="idSchedules" style="margin-top:.5em; margin-bottom: .5em;">
   	</div>  	
@@ -86,7 +87,7 @@
 	  	</div>	  	
   	</div>  	  	
   	<!-- footer menu //-->
-  	<div class="menu">
+  	<div id="idFooter" class="menu" style="display:none">
   		<div class="spread">
 			<div style="margin: 5px"><a href="javascript:clear_schedules()">[Clear]</a></div>
 			<div >
@@ -243,12 +244,25 @@
   	<!-- json errors //-->  	
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>
-  	<!-- spacr //-->
-  	<div style="height:48px;"> </div>  	
+  	<!-- spacer //-->
+  	<div class="spacer" style="height:48px;"> </div>  	
   </body>  
   <script>
-   	$(document).ready(update_status());
+  	var desktop = (""+document.location).match(/desktop=true/);
+  	if (desktop)
+  	{
+  		$("#status").hide();
+  		$("#idFooter").hide();
+  		$(".spacer").hide();
+  	}
+  	else
+  	{
+  		$("#status").show();
+  		$("#idFooter").show();
+  		$(".spacer").show();
+	   	$(document).ready(update_status());
+	   	window.setInterval(update_time, 1000);		    		 	
+	}
 	$(document).ready(update_schedules());
-   	window.setInterval(update_time, 1000);		    		 	
   </script>  
 </html>

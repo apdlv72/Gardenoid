@@ -8,7 +8,8 @@ function show_weather(node)
 		alert("Date is in future!");
 		return;
 	}
-	var url = "weather.html?day=" + day + "&nonce=" + make_nonce();
+	var url = "weather.html?desktop=" + global_desktop + "&day=" + day + "&nonce=" + make_nonce();
+	//alert("url: " + url);
 	document.location = url;
 }
 

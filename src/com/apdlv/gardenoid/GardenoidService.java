@@ -123,6 +123,7 @@ public class GardenoidService extends Service
 	private long    mExpires;
 	private boolean mAuthorized;
 	private boolean mInternal;
+	private boolean mMobile;
 	private String  mName;
 
 	public Cookie(String name)
@@ -130,6 +131,16 @@ public class GardenoidService extends Service
 	    mName       = name;
 	    mExpires    = -1;
 	    mAuthorized = mInternal = false;
+	}
+	
+	public boolean isMobile()
+	{
+	    return mMobile;
+	}
+
+	public void setMobile(boolean m)
+	{
+	    mMobile = m;
 	}
 
 	public boolean isExpired() 
@@ -1638,7 +1649,7 @@ public class GardenoidService extends Service
 	private static final String TEMP_UNIT_CELSIUS = "c";
 	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_200 = NanoHTTPD_SSL.Response.Status.OK; //new Status(200, "OK");
 	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_301 = NanoHTTPD_SSL.Response.Status.REDIRECT; // new Status(301, "Redirect");
-	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_401 = NanoHTTPD_SSL.Response.Status.UNAUTHORIZED; // new Status(301, "Redirect");
+	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_y = NanoHTTPD_SSL.Response.Status.UNAUTHORIZED; // new Status(301, "Redirect");
 	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_404 = NanoHTTPD_SSL.Response.Status.NOT_FOUND; //new Status(404, "Not found");
 	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_500 = NanoHTTPD_SSL.Response.Status.INTERNAL_ERROR; // new Status(501, "Internal server error");
 	public final String CT_TEXT_PLAIN   = "text/plain";
@@ -2252,7 +2263,9 @@ public class GardenoidService extends Service
 	    }
 
 	    Cookie session = getSession(params);	    
-	    Cookie cookie  = getOrCreateCookie(headers);
+	    Cookie cookie  = getOrCreateCookie(headers);	    
+	    System.out.println("serveUnsecurely: " + method + " '" + uri + "', cookie=" + cookie);
+	    
 	    if (null!=session && session.isAuthorized())
 	    {
 		cookie.setAuthorized(true);
@@ -2263,10 +2276,16 @@ public class GardenoidService extends Service
 		cookie.setAuthorized(true);
 	    }
 	    
-	    if (!uri.startsWith("/rest"))
+	    if (!uri.startsWith("/rest") && !uri.startsWith("/js") && !uri.startsWith("/img") && !uri.startsWith("/css"))
 	    {
 		// just for setting break point here for regular pages 
                 uri += "";
+	    }
+	    
+	    if (uri.endsWith("/logout.html") )
+	    {
+		cookie.setAuthorized(false);
+		uri =  "/login.html";
 	    }
 	    
 	    if (uri.endsWith("/login.html"))
@@ -2277,9 +2296,14 @@ public class GardenoidService extends Service
 		boolean authorized = cookie.isAuthorized() || (U.matches("art",user) && U.matches("test99",pass));						
 		if (authorized) 
 		{
+		    boolean mobile = isMobileDevice(headers);
+		    cookie.setMobile(mobile);		    
 		    cookie.setAuthorized(authorized);
+		    
+		    String location = mobile ? "/mobile.html" : "/desktop.html";
+		    
 		    Response r = new Response(STATUS_301, CT_TEXT_PLAIN, "Login sucessful");
-		    r.addHeader("Location", "/");
+		    r.addHeader("Location", location);
 		    r.addHeader("Set-Cookie", cookie.getName());
 		    return r;		    		    
 		}
@@ -2291,23 +2315,47 @@ public class GardenoidService extends Service
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
 	    }
-
+	    
+	    if (uri.startsWith("/mobile.html"))
+	    {
+		cookie.setMobile(true);
+		uri = "/index.html";
+	    }
+	    else if (uri.startsWith("/desktop.html"))
+	    {
+		cookie.setMobile(false);		
+	    }
+	    
 	    if (cookie.isExpired() || !cookie.isAuthorized())
 	    {
 		if (uri.endsWith(".html") || uri.equals("/") || uri.equals(""))
 		{
-		    Response r = new Response(STATUS_301, CT_TEXT_PLAIN, "Need to log in first.");
+		    Response r = new Response(STATUS_301, CT_TEXT_PLAIN, "Need to log in first."); 		
+		    r.addHeader("Set-Cookie", cookie.getName());
 		    r.addHeader("Location", "/login.html");
 		    return r;
 		} 
 		// no authorization required for CSS (e.g. on login page)
 		else if (!uri.endsWith(".css") && !uri.endsWith(".png"))
 		{
-		    return new Response(STATUS_401, "text/plain", "Authorization required");
+		    return new Response(STATUS_404, "text/plain", "Authorization required");
 		}
 	    }
-	    
-	    System.out.println("serve: " + method + " '" + uri + "', cookie=" + cookie);	    
+/*	    
+	    if ((uri.equals("/") || uri.startsWith("/index.html")) && !params.containsKey("desktop"))
+	    {
+		boolean mobile = isMobileDevice(headers);
+		cookie.setMobile(mobile);
+		if (!mobile)
+		{
+		    String location = "/desktop.html";
+		    Response r = new Response(STATUS_301, CT_TEXT_HTML, "Redirect to desktop version");
+		    r.addHeader("Location", location);
+		    r.addHeader("Set-Cookie", cookie.getName());
+		    return r;		    		    
+		}
+	    }
+*/
 	    if (uri.startsWith("/rest"))
 	    {
 		String resource = uri.substring(5);        	
@@ -2496,7 +2544,6 @@ public class GardenoidService extends Service
 		return r;
 	    }
 		
-
 	    if (template.endsWith(".js"))
 	    {
 		System.out.println("serve: fetching java script " + template);
@@ -2569,6 +2616,7 @@ public class GardenoidService extends Service
 
 	    Map<String, String> map = this.toMap();
 	    map.put("cookie",       cookie.getName());
+	    map.put("desktop",      cookie.isMobile() ? "false" : "true");
 	    map.put("conditionals", Conditional.CONDITIONALS_JSON);        
 	    map.put("version",      mServiceVersion);
 	    map.putAll(params);
@@ -2592,6 +2640,15 @@ public class GardenoidService extends Service
 		return r;
 	    }            
 	}
+
+        private boolean isMobileDevice(Map<String, String> headers)
+        {
+	    String ua = headers.get("user-agent");
+	    ua = (null==ua) ? "" : ua.toLowerCase();
+	    if (ua.contains("ios") || ua.contains("android")) return true;
+	    if (ua.contains("nokia") || ua.contains("ericsson") || ua.contains("blackberry")) return true;
+	    return false;
+        }
 
 
 	private String createExpirationDate()

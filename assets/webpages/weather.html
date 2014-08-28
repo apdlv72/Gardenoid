@@ -1,5 +1,6 @@
 <!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
   "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<!-- desktop={{desktop}} //-->
 <html>
   <head>
     <title>Weather Conditions</title>
@@ -22,12 +23,12 @@ var global_day = "{{day}}";
 			<div style="margin: 5px"> </div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a href="forecast.html?nonce={{nonce}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
+			<div style="margin: 5px"><a href="forecast.html?desktop={{desktop}}&nonce={{nonce}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
   	<!-- spacer //-->
-  	<div style="height:32px;"> </div>
+  	<div class="spacerTop" style="height:32px;"> </div>
 	<!-- pagination //-->
 	<div style="margin-top:2em; margin-bottom: 1em; width=100%">
   		<div class="spread">
@@ -59,7 +60,7 @@ var global_day = "{{day}}";
 	  	</div>	  	
   	</div>  	  	
   	<!-- footer menu //-->
-  	<div class="menu">
+  	<div id="idFooter" class="menu">
   		<div class="spread">
 			<div style="margin: 5px"> </div>
 			<div >
@@ -78,11 +79,21 @@ var global_day = "{{day}}";
   	<div id="jsonErrorLog" class="jsonErrorLog">
   	</div>
   	<!-- spacer //-->
-  	<div style="height:48px;"> </div>  	
+  	<div class="spacer" style="height:48px;"> </div>  	
   </body>  
   <script>
-   	$(document).ready(update_status());
+  	if ("{{desktop}}"=="true")
+  	{
+  		$("#statusPeerName").hide();
+  		$("#statusTime").hide();  		
+  		$("#idFooter").hide();
+  		$(".spacer").hide();  		
+  	}
+  	else
+  	{
+	   	$(document).ready(update_status());
+	   	window.setInterval(update_time, 1000);
+   	}		    		 	
 	$(document).ready(update_content());
-   	window.setInterval(update_time, 1000);		    		 	
   </script>  
 </html>

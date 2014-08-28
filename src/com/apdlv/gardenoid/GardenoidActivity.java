@@ -128,7 +128,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		mServiceLink = mServerProtocol + mServerAddr + ":" + mServerPort;
 		
 		String sess = mService.createSessionInternally();
-		String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("?session=%s&version=%x", ""+sess, mStartTime);
+		String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("/mobile.html?session=%s&version=%x", ""+sess, mStartTime);
 		mWebView.loadUrl(link);
 	    }
 	    else
@@ -233,7 +233,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		public void onCloseWindow(WebView window)
 		{
 		    //super.onCloseWindow(window);
-		    String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("?version=%x", mStartTime);
+		    String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("/mobile.html?version=%x", mStartTime);
 		    window.loadUrl(link);
 		}
 	});
