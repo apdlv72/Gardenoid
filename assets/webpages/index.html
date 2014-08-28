@@ -168,7 +168,8 @@ var global_cookie = "{{cookie}}";
   	<div class="spacer" style="height:48px;" style="display:none"> </div>
   </body>  
   <script>
-  	if ("{{desktop}}"=="true")
+  	var global_desktop = ("{{desktop}}"=="true"); 
+  	if (global_desktop)
   	{
   		$("#status").hide();
   		$("#idFooter").hide();
@@ -180,8 +181,8 @@ var global_cookie = "{{cookie}}";
   		$("#idFooter").show();
   		$(".spacer").show();
 	   	$(document).ready(update_status());
-	   	window.setInterval(update_time, 1000);		    		 	
 	}
   	$(document).ready(set_strand_names());
+   	window.setInterval(update_timers, 1000);		    		 	
   </script>  
 </html>
