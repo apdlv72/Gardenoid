@@ -19,14 +19,19 @@
 			<div style="margin: 5px"> </div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a id="idLinkCancel" href="index.html?nonce={{nonce}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
+			<div style="margin: 5px"><a id="idLinkCancel" href="index.html?nonce={{nonce}}&desktop={{desktop}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
 	<!-- spacer //-->   	
-  	<div class="spacer" style="height:52px;" style="display:none"> </div>
+  	<div class="spacer" style="height:60px;" style="display:none"> </div>
   	<!-- content (empty initially, will be filled with template instances)//-->
-  	<div id="idForecasts" style="margin-top:.5em; margin-bottom: .5em;">
+  	<div id="idForecastsFuture"   style="margin-top:.5em; margin-bottom: .5em;">
+  	</div>
+  	<div id="idLoading" style="text-align:center; color:white;">
+  		Loading data ...
+  	</div>
+  	<div id="idForecastsHistoric" style="margin-top:.5em; margin-bottom: .5em;">
   	</div>  	
   	<!-- div hiding the template //-->
   	<div id="divForecastHide" class="hideTemplate" style="display:none">
@@ -34,7 +39,7 @@
   		<!-- template dom //-->
   		<div id="idForecastTemplate" class="forecast" style="padding:.25em;">
 
-  			<div id="monthDiv" style="margin-top:10px; margin-bottom:10px;" onclick="show_weather(this);">
+  			<div id="idContainer" style="margin-top:10px; margin-bottom:10px;" onclick="show_weather(this);">
   				<div style="margin-left: 1em; margin-right: 1em; float: left; text-align: center;">
   					<img id="idImg" src="http://l.yimg.com/a/i/us/we/52/34.gif"><br>
   				</div>

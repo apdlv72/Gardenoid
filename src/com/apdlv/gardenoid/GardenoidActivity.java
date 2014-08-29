@@ -57,6 +57,21 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     private int    mServerPort     = 8080;
     private String mServiceLink    = "undefined";
 
+    
+    private String makeLocalUrl()
+    {
+	try
+	{	    
+	    String sess = null==mConnection.mService ? "none" : mConnection.mService.createSessionInternally();
+	    String link  = String.format("%s127.0.0.1:%d/mobile.html?session=%s&version=%x", mServerProtocol, mServerPort, sess, mStartTime);
+	    return link;
+	}
+	catch (Exception e)
+	{
+	    System.err.println("makeLocalUrl: " + e);
+	}
+	return "https://127.0.0.1:" + GardenoidService.PORT_HTTPS;
+    }
 
     class HttpServiceConnection extends BroadcastReceiver implements ServiceConnection
     {
@@ -127,8 +142,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 				
 		mServiceLink = mServerProtocol + mServerAddr + ":" + mServerPort;
 		
-		String sess = mService.createSessionInternally();
-		String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("/mobile.html?session=%s&version=%x", ""+sess, mStartTime);
+		String link  = makeLocalUrl();
 		mWebView.loadUrl(link);
 	    }
 	    else
@@ -232,8 +246,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		@Override
 		public void onCloseWindow(WebView window)
 		{
-		    //super.onCloseWindow(window);
-		    String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("/mobile.html?version=%x", mStartTime);
+		    String link  = makeLocalUrl();
 		    window.loadUrl(link);
 		}
 	});
@@ -249,9 +262,10 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	try
 	{	    
 	    SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
-	    boolean firstRun = p.getBoolean("PREFERENCE_FIRST_RUN", true);	
-	    
-	    if (!DONT_COPY_PAGES && firstRun)
+	    boolean firstRun = p.getBoolean("PREFERENCE_FIRST_RUN", true);
+	    // prevent "dead code" warning:
+            boolean doIt = firstRun && !DONT_COPY_PAGES;
+	    if (doIt)
 	    {
 		copyWebPagesToSDCard(TemplateEngine.DIR_PREFIX_WEBPAGES);
 		// commit AFTER we copied pages
@@ -493,9 +507,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	{
 	    if (null!=mHttpServer && mHttpServer.isAlive())
 	    {
-		GardenoidService service = (null==mConnection) ? null : mConnection.mService;
-		String sess   = null==service ? null : service.createSessionInternally();
-		String link   = mServerProtocol + mServerAddr + ":" + mServerPort + String.format("/login.html?session=%s&version=%x", ""+sess, mStartTime);		
+		String link = makeLocalUrl();
 		Intent intent = new Intent(Intent.ACTION_VIEW);
 		intent.setData(Uri.parse(link));
 		startActivity(intent);
@@ -503,11 +515,9 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	} 
 	else if (item.getItemId()==R.id.menuReload)
 	{
-	    GardenoidService service = (null==mConnection) ? null : mConnection.mService;
-	    String sess  = null==service ? null : service.createSessionInternally();
-	    String link  = mServerProtocol + "127.0.0.1" + ":" + mServerPort + String.format("/login.html?session=%s&version=%x", ""+sess, mStartTime);
+	    String link  = makeLocalUrl();
 	    mWebView.loadUrl(link);
-	    mWebView.reload();
+	    //mWebView.reload();
 	} 
 	return false;
     };

@@ -1,4 +1,3 @@
-
 function show_weather(node)
 {
 	var day    = $(node).find("#idDay").text();
@@ -9,7 +8,6 @@ function show_weather(node)
 		return;
 	}
 	var url = "weather.html?desktop=" + global_desktop + "&day=" + day + "&nonce=" + make_nonce();
-	//alert("url: " + url);
 	document.location = url;
 }
 
@@ -44,7 +42,13 @@ function create_forecast_dom(no, template, forecast)
 	else if ("Sat"==dow) dom.addClass("saturday");
 	else if (no%2)       dom.addClass("odd");
 	
-	if (future) dom.addClass("future");
+	if (future)
+	{
+		dom.addClass("future");
+		// disable n click action (opens weather for historic forecasts only)
+		var cont = dom.find("#idContainer")[0];
+		cont.onclick = null;
+	}
 	
 	dom.find("#idDay").text(day);
 	dom.find("#idDow").text(dow);
@@ -61,26 +65,55 @@ function create_forecast_dom(no, template, forecast)
     
 function update_forecasts()
 {
-	var template = $("#idForecastTemplate");    	
- 	var target   = $("#idForecasts");
+	var template       = $("#idForecastTemplate");
+ 	var targetFuture   = $("#idForecastsFuture");
+ 	var targetHistoric = $("#idForecastsHistoric");
 
- 	var url = "rest/forecast/list?range=future";
+ 	var url = "rest/forecast/list";
+ 	var haveHistoric = false;
+ 	var haveFuture   = false;
+ 	
 	var request = $.getJSON(url, function(data)
 	{
 	 	var forecasts = data["forecasts"];
-	 	var doms = [];
+	 	var domsFuture   = [];
+	 	var domsHistoric = [];
+	 	
 	 	$.each(forecasts, function(i,forecast)
 	 	{
-	 		var dom = create_forecast_dom(i, template, forecast);	
-	   	 	doms.push(dom);
-	   	 	log(forecast);
+	 		var dom = create_forecast_dom(i, template, forecast);
+	 		if (forecast["future"])
+	 		{
+	 			domsFuture.push(dom);
+	 		}
+	 		else
+	 		{
+	 			domsHistoric.push(dom);
+	 		}
 	 	});	    	
 
-   	 	target.empty();
-   	 	doms.forEach(function(dom)
+	 	targetFuture.empty();
+	 	domsFuture.forEach(function(dom)
    	 	{
-   	 		target.append(dom);	
+   	 		targetFuture.append(dom);	
+ 			haveFuture = true;
    	 	});	   	 	
+	 	
+	 	targetHistoric.empty();
+	 	domsHistoric.forEach(function(dom)
+   	 	{
+	 		targetHistoric.append(dom);	
+ 			haveHistoric = true;
+   	 	});	   	 	
+
+	 	if (haveHistoric)
+		{
+			$("#idLoading").text("Historic forecasts:");
+		}
+		else if (!haveFuture)
+		{
+			$("#idLoading").text("No forecast data.");
+		}	
 	});
 	
 	request.error(handle_json_error);
@@ -88,6 +121,5 @@ function update_forecasts()
 	{
 		updateOngoing = false;
 		window.setTimeout(update_forecasts,300*1000); // every 5 minutes
-	});	
+	});		
 }
-

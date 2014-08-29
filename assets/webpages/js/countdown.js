@@ -51,7 +51,6 @@ function set_time(node)
 
 function update_timers()
 {
-	log("countdown.update_time: update_timers called, global_desktop=" + global_desktop);
 	var now = new Date();
 	var remoteMillis = now.getTime()+timeSkew;
 	var remoteUnixTime = remoteMillis/1000;     	
@@ -66,11 +65,6 @@ function update_timers()
 	if (global_desktop)
 	{
 		list = parent.window.frames.frameHeader.lastOnetimeList;
-		log("countdown.update_timers: parent list=" + list);
-	}
-	else
-	{
-		log("countdown.update_timers: own list=" + list);		
 	}
 	
 	list.forEach(function(elem)

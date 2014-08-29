@@ -41,7 +41,8 @@ public class Forecast
     @Override
     public String toString() 
     {
-        return Weather.class.getSimpleName() + toJson(Calendar.getInstance().getTimeInMillis()/1000); 
+	Calendar now = DAO.todayNoon();
+        return Weather.class.getSimpleName() + toJson(now); 
     }
         
     //getters & setters
@@ -115,7 +116,7 @@ public class Forecast
         this.high = high;
     }
 
-    public String toJson(long nowUnixtime)
+    public String toJson(Calendar todayNoon)
     {
 	StringBuilder sb = new StringBuilder();
 	sb.append("  { ");
@@ -126,8 +127,9 @@ public class Forecast
 	sb.append("\"low\": ").append(getLow()).append(", ");
 	sb.append("\"high\": ").append(getHigh()).append(", ");
 	
-	long unixTime = getDay().getTimeInMillis()/1000;	
-	sb.append("\"future\": ").append(unixTime>nowUnixtime).append(", ");
+	Calendar dayNoon = getDay();
+	boolean future = dayNoon.after(todayNoon); 
+	sb.append("\"future\": ").append(future).append(", ");
 	
 	Calendar u = getUpdated();
 	String updated = null==u ? "null" : "\"" + U.YYYYMMDD_hhmmss.format(getUpdated().getTime()) + "\""; 
