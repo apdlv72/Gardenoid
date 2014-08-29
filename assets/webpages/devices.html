@@ -54,8 +54,14 @@
   	</div>  	
   </body>  
   <script>
-   	$(document).ready(update_status());
+  	if ((global_desktop = ("{{desktop}}"=="true")))
+  	{
+  	}
+  	else
+  	{
+   		$(document).ready(update_status());  		
+	   	window.setInterval(update_time, 1000);		    		 	
+  	}
 	$(document).ready(update_devices());
-   	window.setInterval(update_time, 1000);		    		 	
   </script>  
 </html>

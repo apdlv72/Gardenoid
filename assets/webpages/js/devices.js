@@ -92,8 +92,8 @@ function update_devices()
 	{
 		try
 		{
-    	 	devices = data["devices"];
-    		text = "";
+    	 	var devices = data["devices"];
+    		var text = "";
     	 	    	 	
     	 	$.each(devices, function(i,device)
     	 	{ 

@@ -30,6 +30,10 @@ function add_schedule()
 	</div>
   </body>  
   <script>
+  	if (global_desktop = ("{{desktop}}"=="true"))
+  	{
+		// nothing to do here (should be always true)  		
+  	}
    	$(document).ready(update_status());
    	window.setInterval(update_time, 1000);		    		 	
   </script>  

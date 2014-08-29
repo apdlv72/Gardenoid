@@ -68,6 +68,10 @@ import fi.iki.elonen.NanoHTTPD_SSL;
 //import fi.iki.elonen.NanoHTTPD_SSL;
 //import com.apdlv.gardenoid.MyJson.JArray;
 
+import fi.iki.elonen.NanoHTTPD_SSL.Response.Status;
+
+
+
 /**
  * A service running in the background and implementing kind of a HTTP to bluetooth gateway.
  * The HTTP server allows to send commands to and receive replies from the BT device.
@@ -1661,11 +1665,6 @@ public class GardenoidService extends Service
 	 */
 
 	private static final String TEMP_UNIT_CELSIUS = "c";
-	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_200 = NanoHTTPD_SSL.Response.Status.OK; //new Status(200, "OK");
-	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_301 = NanoHTTPD_SSL.Response.Status.REDIRECT; // new Status(301, "Redirect");
-	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_y   = NanoHTTPD_SSL.Response.Status.UNAUTHORIZED; // new Status(301, "Redirect");
-	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_404 = NanoHTTPD_SSL.Response.Status.NOT_FOUND; //new Status(404, "Not found");
-	public final fi.iki.elonen.NanoHTTPD_SSL.Response.Status STATUS_500 = NanoHTTPD_SSL.Response.Status.INTERNAL_ERROR; // new Status(501, "Internal server error");
 	public final String CT_TEXT_PLAIN   = "text/plain";
 	public final String CT_TEXT_HTML    = "text/html;charset=UTF-8";
 	public final String CT_TEXT_JSON    = "text/json";
@@ -1685,7 +1684,7 @@ public class GardenoidService extends Service
 	    
 	    public Redirect(String location, String cookie, String body)
 	    {
-		super(STATUS_301, CT_TEXT_PLAIN, body);
+		super(Status.REDIRECT, CT_TEXT_PLAIN, body);
 		addHeader("Location", location);
 		addHeader("Set-Cookie", cookie);		
 	    }
@@ -1826,7 +1825,7 @@ public class GardenoidService extends Service
 		    }
 		}
 		msg.append("]}"); 
-		Response r = new Response(STATUS_200, CT_TEXT_JSON, msg.toString());
+		Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
 		r.addHeader("Refresh", "10"); // auto update every 10s
 		return r;
 	    }
@@ -1897,18 +1896,18 @@ public class GardenoidService extends Service
 	    {
 		int no   = U.toInt(params.get("no"));
 		int secs = U.toInt(params.get("secs"));
-		return new Response(STATUS_200, CT_TEXT_JSON, mOneTimeContainer.addTime(no, secs).toJson(no));
+		return new Response(Status.OK, CT_TEXT_JSON, mOneTimeContainer.addTime(no, secs).toJson(no));
 	    }
 	    else if (resource.startsWith("/onetime/set"))
 	    {
 		int no   = U.toInt(params.get("no"));
 		int secs = U.toInt(params.get("secs"));
-		return new Response(STATUS_200, CT_TEXT_JSON, mOneTimeContainer.setTime(no, secs).toJson(no));
+		return new Response(Status.OK, CT_TEXT_JSON, mOneTimeContainer.setTime(no, secs).toJson(no));
 	    }
 	    else if (resource.startsWith("/onetime/stop"))
 	    {
 		int no   = U.toInt(params.get("no"));
-		return new Response(STATUS_200, CT_TEXT_JSON, mOneTimeContainer.stop(no).toJson(no));        		
+		return new Response(Status.OK, CT_TEXT_JSON, mOneTimeContainer.stop(no).toJson(no));        		
 	    }
 	    else if (resource.startsWith("/schedules/list") || resource.startsWith("/schedules/active"))
 	    {   
@@ -2033,7 +2032,7 @@ public class GardenoidService extends Service
 		    mDao.logException(e);
 		    String err  = ("" + e).replaceAll("\"",  "'");
 		    String json = "{ \"success\" : false, \"id\" : " + id + ", \"error\" : \"" + err + "\" }";
-		    Response r = new Response(STATUS_500, CT_TEXT_JSON, json);
+		    Response r = new Response(Status.INTERNAL_ERROR, CT_TEXT_JSON, json);
 		    r.addHeader("Pragma", "no-cache");
 		    return r;
 		}
@@ -2086,7 +2085,7 @@ public class GardenoidService extends Service
 		msg.append(", \"onetimeList\":").append(mOneTimeContainer.toJson(nowUnixtime));
 		msg.append("}\n");
 
-		Response r = new Response(STATUS_200, CT_TEXT_JSON, msg.toString());
+		Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
 		r.addHeader("Pragma", "no-cache");
 		if (DEBUG_ONETIME_CONTAINER)
 		{
@@ -2143,7 +2142,7 @@ public class GardenoidService extends Service
 		sb.append("\n], \n");
 		sb.append("\"day\" : ").append(U.escapedOrNull(day));
 		sb.append("}");
-		Response r = new Response(STATUS_200, CT_TEXT_JSON, sb.toString());
+		Response r = new Response(Status.OK, CT_TEXT_JSON, sb.toString());
 		r.addHeader("Pragma", "no-cache");
 		return r;
 	    }
@@ -2161,7 +2160,7 @@ public class GardenoidService extends Service
 		    first = false;
 		}
 		sb.append("\n]\n}");
-		Response r = new Response(STATUS_200, CT_TEXT_JSON, sb.toString());
+		Response r = new Response(Status.OK, CT_TEXT_JSON, sb.toString());
 		r.addHeader("Pragma", "no-cache");
 		return r;
 	    }
@@ -2204,14 +2203,14 @@ public class GardenoidService extends Service
 		    sb.append("\n  ]");	            
 		    sb.append("\n}");	            
 
-		    Response r = new Response(STATUS_200, CT_TEXT_JSON, sb.toString());
+		    Response r = new Response(Status.OK, CT_TEXT_JSON, sb.toString());
 		    r.addHeader("Pragma", "no-cache");
 		    return r;
 		} 
 		catch (Exception e)
 		{
 		    mDao.logException(e);
-		    Response r = new Response(STATUS_500, CT_TEXT_JSON, "{ \"success\" : false, exception: \"" + e + "\" }");
+		    Response r = new Response(Status.INTERNAL_ERROR, CT_TEXT_JSON, "{ \"success\" : false, exception: \"" + e + "\" }");
 		    r.addHeader("Pragma", "no-cache");
 		    e.printStackTrace();
 		    return r;
@@ -2219,12 +2218,12 @@ public class GardenoidService extends Service
 	    }
 	    else
 	    {
-		Response r = new Response(STATUS_404, CT_TEXT_PLAIN, "Resource '" + resource + "' does not exist");
+		Response r = new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "Resource '" + resource + "' does not exist");
 		r.addHeader("Pragma", "no-cache");
 		return r;    	    
 	    }
 
-	    Response r = new Response(STATUS_200, CT_TEXT_JSON, msg.toString());
+	    Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
 	    r.addHeader("Pragma", "no-cache"); //System.out.println("SENDING: " + msg);
 	    return r;
 	}
@@ -2250,7 +2249,7 @@ public class GardenoidService extends Service
 //	    catch (Exception e)
 //	    { 
 //		e.printStackTrace();
-//		return new Response(STATUS_500, CT_TEXT_PLAIN, ""+e);
+//		return new Response(Status.INTERNAL_ERROR, CT_TEXT_PLAIN, ""+e);
 //	    }
 //	}
 
@@ -2291,7 +2290,7 @@ public class GardenoidService extends Service
 	{
 	    if (uri.startsWith("/favicon.ico"))
 	    {
-		return new Response(STATUS_200, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
+		return new Response(Status.OK, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
 	    }
 
 	    Cookie session = getSession(params);	    
@@ -2334,7 +2333,7 @@ public class GardenoidService extends Service
 		Map<String, String> map = new HashMap<String, String>(1); 
 		map.put("version", mServiceVersion);
 		String page = mTemplateEngine.render(uri, map);
-		Response r = new Response(STATUS_200, CT_TEXT_HTML, page);
+		Response r = new Response(Status.OK, CT_TEXT_HTML, page);
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
 	    }
@@ -2363,7 +2362,7 @@ public class GardenoidService extends Service
 		// no authorization required for CSS (e.g. on login page)
 		else if (!uri.endsWith(".css") && !uri.endsWith(".png"))
 		{
-		    return new Response(STATUS_404, "text/plain", "Authorization required");
+		    return new Response(Status.NOT_FOUND, "text/plain", "Authorization required");
 		}
 	    }
 
@@ -2435,7 +2434,7 @@ public class GardenoidService extends Service
 		msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
 
 		msg.append("</body></html>");
-		return new NanoHTTPD_SSL.Response(STATUS_200, CT_TEXT_HTML, msg.toString());		
+		return new NanoHTTPD_SSL.Response(Status.OK, CT_TEXT_HTML, msg.toString());		
 	    }
 	    else if (uri.startsWith("/schedules/add"))
 	    {
@@ -2476,13 +2475,13 @@ public class GardenoidService extends Service
 
 		if (id>-1)
 		{
-		    Response r = new Response(STATUS_301, CT_TEXT_JSON, "{ \"success\" : true }");
+		    Response r = new Response(Status.REDIRECT, CT_TEXT_JSON, "{ \"success\" : true }");
 		    r.addHeader("Refresh", "1; /");
 		    return r;
 		}
 		else
 		{
-		    Response r = new Response(STATUS_500, CT_TEXT_JSON, "{ \"success\" : false }");
+		    Response r = new Response(Status.INTERNAL_ERROR, CT_TEXT_JSON, "{ \"success\" : false }");
 		    //r.addHeader("Refresh", "1; /schedules/add.html");
 		    return r;        	    
 		}
@@ -2492,7 +2491,7 @@ public class GardenoidService extends Service
 	    {
 		String expires = createExpirationDate();
 		InputStream is = mTemplateEngine.getFile(uri); String ct = getContentType(uri);
-		Response r = new Response(STATUS_200, ct, is);
+		Response r = new Response(Status.OK, ct, is);
 		r.addHeader("Cache-Control", "Public");
 		r.addHeader("Expires", expires);
 		return r;
@@ -2507,7 +2506,7 @@ public class GardenoidService extends Service
 		String script = "var conditionals = " + Conditional.CONDITIONALS_JSON + ";";
 		String expires = createExpirationDate();
 
-		Response r = new Response(STATUS_200, CT_JAVASCRIPT, script);
+		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
 		r.addHeader("Cache-Control", "Public");
 		r.addHeader("Expires", expires);
 		return r;
@@ -2529,7 +2528,7 @@ public class GardenoidService extends Service
 		String script = "var strands = " + sb.toString() + ";";
 		String expires = createExpirationDate();
 
-		Response r = new Response(STATUS_200, CT_JAVASCRIPT, script);
+		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
 		r.addHeader("Cache-Control", "Public");
 		r.addHeader("Expires", expires);
 		return r;
@@ -2543,7 +2542,7 @@ public class GardenoidService extends Service
 		    String expires = createExpirationDate();
 		    String ct = getContentType(template);
 
-		    Response r = new Response(STATUS_200, ct, page);
+		    Response r = new Response(Status.OK, ct, page);
 		    r.addHeader("Cache-Control", "Public");
 		    r.addHeader("Expires", expires);
 		    return r;
@@ -2569,7 +2568,7 @@ public class GardenoidService extends Service
 
 		if (null==s)
 		{
-		    return new Response(STATUS_404, CT_TEXT_PLAIN, "Schedule ID " + id + " not found");
+		    return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "Schedule ID " + id + " not found");
 		}
 
 		Map<String, String> map = new HashMap<String, String>(3); 
@@ -2581,7 +2580,7 @@ public class GardenoidService extends Service
 		System.out.println("serve: rendering template");
 		page = mTemplateEngine.render(template, map);
 		System.out.println("serve: sending page");
-		return new Response(STATUS_200, CT_TEXT_HTML, page);
+		return new Response(Status.OK, CT_TEXT_HTML, page);
 	    }
 
 	    if ("/".equals(uri) || "".equals(uri)) 
@@ -2604,13 +2603,13 @@ public class GardenoidService extends Service
 
 	    if (null==page)
 	    {
-		Response r = new Response(STATUS_404, CT_TEXT_HTML, "Not found");
+		Response r = new Response(Status.NOT_FOUND, CT_TEXT_HTML, "Not found");
 		r.addHeader("Connection", "close");
 		return r; 
 	    }
 	    else
 	    {
-		Response r =  new Response(STATUS_200, CT_TEXT_HTML, page);
+		Response r =  new Response(Status.OK, CT_TEXT_HTML, page);
 		r.addHeader("Connection", "close");
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
@@ -2800,7 +2799,7 @@ public class GardenoidService extends Service
 	    catch (Exception e)
 	    { 
 		e.printStackTrace();
-		return new Response(STATUS_500, CT_TEXT_PLAIN, ""+e);
+		return new Response(Status.INTERNAL_ERROR, CT_TEXT_PLAIN, ""+e);
 	    }
         }
 

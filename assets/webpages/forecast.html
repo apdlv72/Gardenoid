@@ -76,8 +76,7 @@
   	<div class="spacer" style="height:52px;" style="display:none"> </div>  	
   </body>  
   <script>
-    global_desktop = ("{{desktop}}"=="true"); 
-  	if (global_desktop)
+  	if ((global_desktop = ("{{desktop}}"=="true")))
   	{
   		$("#status").hide();
   		$("#idFooter").hide();

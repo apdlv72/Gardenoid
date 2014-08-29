@@ -248,8 +248,7 @@
   	<div class="spacer" style="height:48px;"> </div>  	
   </body>  
   <script>
-  	var desktop = (""+document.location).match(/desktop=true/);
-  	if (desktop)
+  	if ((global_desktop = ("{{desktop}}"=="true")))
   	{
   		$("#status").hide();
   		$("#idFooter").hide();

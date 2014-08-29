@@ -168,8 +168,7 @@ var global_cookie = "{{cookie}}";
   	<div class="spacer" style="height:48px;" style="display:none"> </div>
   </body>  
   <script>
-  	var global_desktop = ("{{desktop}}"=="true"); 
-  	if (global_desktop)
+  	if ((global_desktop = ("{{desktop}}"=="true")))
   	{
   		$("#status").hide();
   		$("#idFooter").hide();

@@ -18,8 +18,11 @@ function receive_response_set_time(data)
 {
 	var no     = data["no"];
 	var left   = data["left"];
-	var end    = data["end"];
-	$("#idLeft" + no).text(left);
+	var end    = data["end"];	
+	
+	var ss = format_seconds(left);	
+	$("#idLeft" + no).text(ss);
+	
 	var indicator = $("#idActive" + no);
 	if (left>0)
 	{

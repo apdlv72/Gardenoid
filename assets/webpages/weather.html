@@ -82,7 +82,7 @@ var global_day = "{{day}}";
   	<div class="spacer" style="height:48px;"> </div>  	
   </body>  
   <script>
-  	if ("{{desktop}}"=="true")
+  	if ((global_desktop = ("{{desktop}}"=="true")))
   	{
   		$("#statusPeerName").hide();
   		$("#statusTime").hide();  		

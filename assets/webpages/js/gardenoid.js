@@ -8,6 +8,8 @@ var lastOnetimeList = [];
 var timeSkew        = 0;
 var dayNames        = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
+// stores globally if desktop browser is used
+var global_desktop = false;
 
 function log(msg)
 {
@@ -164,6 +166,20 @@ $.fn.flash = function(duration, iterations) {
     }
 }
 
+function do_reload()
+{
+	if (global_desktop)
+	{
+		var strandsFrame = parent.window.frames[1];
+		log("Passing on reload request to strandsFrame=" + strandsFrame);
+		strandsFrame.location.reload(true);
+	}
+	else
+	{
+		location.reload(true);
+	}
+}
+
 function receive_status(data)
 {
 	try
@@ -183,14 +199,14 @@ function receive_status(data)
 	    
 	    if (lastVersion!=null && lastVersion!=newVersion)
 	    {
-	    	location.reload(true);
+	    	do_reload();
 	    } 		    
 	    if (lastReconfig!=null && lastReconfig!=newReconfig)
 	    {
 	    	// do not update if config was issued by this instance
 	    	if (lastReconfigTid==null || lastReconfigTid!=newReconfig)
 	    	{
-	    		location.reload(true);
+		    	do_reload();
 	    	}
 	    } 		    
 	    lastVersion  = newVersion;
