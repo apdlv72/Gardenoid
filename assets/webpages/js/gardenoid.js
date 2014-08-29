@@ -14,6 +14,12 @@ function log(msg)
 	try { if (console) console.log(msg); } catch (e) {}    		
 }
 
+function select_device()
+{
+	var url = "/devices.html?action=select&nonce=" + make_nonce();
+	window.location = url;
+}    
+
 function format_seconds(secs)
 {
 	if (""==secs || secs<1) return "OFF";
