@@ -14,19 +14,6 @@ function log(msg)
 	try { if (console) console.log(msg); } catch (e) {}    		
 }
 
-function select_device()
-{
-	var url = "/devices.html?action=select&nonce=" + make_nonce();
-	window.location = url;
-	return;
-	
-	var win = window.open(
-		urk, 
-		"Select device", 
-		"width=300,height=600,resizable=yes");
-    win.focus();
-}    
-
 function format_seconds(secs)
 {
 	if (""==secs || secs<1) return "OFF";
