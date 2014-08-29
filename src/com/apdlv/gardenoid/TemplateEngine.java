@@ -3,6 +3,7 @@ package com.apdlv.gardenoid;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,7 +15,8 @@ import android.content.res.AssetManager;
 
 public class TemplateEngine
 {
-    public static final String DIR_PREFIX_WEBPAGES = "webpages";
+    public static final String DIR_PREFIX_WEBPAGES  = "webpages";
+    public static final String DIR_PREFIX_CHECKSUMS = "checksums";
     
 
     public TemplateEngine(AssetManager assetManager, File externalDir)
@@ -78,20 +80,9 @@ public class TemplateEngine
 	BufferedReader reader = null;
 	try {
 	    if (templateName.startsWith("/")) templateName = templateName.substring(1);
-	    InputStream ims = findInputStream(templateName);
-	    if (null==ims) return null;
-	    reader = new BufferedReader(new InputStreamReader(ims));
-
-	    // do reading, usually loop until end of file reading  
-	    String mLine = reader.readLine();
-	    StringBuilder sb = new StringBuilder();
-	    while (mLine!=null) 
-	    {
-		sb.append(mLine).append("\r\n");
-		mLine = reader.readLine();
-	    }
-
-	    return sb.toString();
+	    InputStream is = findInputStream(templateName);
+	    String str = readAll(is);
+	    return str;
 	} 
 	catch (IOException e) 
 	{
@@ -149,5 +140,41 @@ public class TemplateEngine
 
     private AssetManager mAssetManager;
     private File mExternalDir;
+
+
+    public String getAsset(String path) throws IOException
+    {
+	InputStream is = mAssetManager.open(path);
+	return readAll(is);
+    }
+
+    public String readExternalFile(String path) throws IOException
+    {
+	File file = new File(mExternalDir, path);
+	if (file.exists())
+	{
+	    System.out.println("findInputStream: found on external storage: " + file);
+	    InputStream is = new FileInputStream(file);
+	    return readAll(is);
+	}
+	return null;
+    }
+
+    private String readAll(InputStream is) throws IOException
+    {
+	if (null==is) return null;
+	BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+
+	// do reading, usually loop until end of file reading  
+	String mLine = reader.readLine();
+	StringBuilder sb = new StringBuilder();
+	while (mLine!=null) 
+	{
+	    sb.append(mLine).append("\r\n");
+	    mLine = reader.readLine();
+	}
+
+	return sb.toString();
+    }
 
 }

@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -45,10 +46,9 @@ import fi.iki.elonen.NanoHTTPD_SSL;
 
 public class GardenoidActivity extends Activity implements OnCheckedChangeListener, OnClickListener
 {
+    private static final String PREFERENCE_RAN_BEFORE = "PREFERENCE_RAN_BEFORE";
+
     public static final String TAG = GardenoidActivity.class.getSimpleName();
-    
-    // during development:
-    public static final boolean DONT_COPY_PAGES = true;
     
     private long mStartTime = U.millis();
 	
@@ -181,6 +181,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     //private TextView mTextViewMask; 
 
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -258,30 +259,68 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	registerReceiver(mConnection, intentFilter);
 	
 	mAssetManager = getAssets();
-	
+	// Reading from assets seems to be even faster than sdcard.
+	// So no need to copy pages there. Makes things mor complicated
+	// e.g. need to delete the pages after updates.
+	/*
 	try
 	{	    
 	    SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
-	    boolean firstRun = p.getBoolean("PREFERENCE_FIRST_RUN", true);
-	    // prevent "dead code" warning:
-            boolean doIt = firstRun && !DONT_COPY_PAGES;
-	    if (doIt)
+	    boolean ranBefore = p.getBoolean(PREFERENCE_RAN_BEFORE, false);
+	    //if (!ranBefore) 
 	    {
-		copyWebPagesToSDCard(TemplateEngine.DIR_PREFIX_WEBPAGES);
-		// commit AFTER we copied pages
-		p.edit().putBoolean("PREFERENCE_FIRST_RUN", false).commit();
+		File externalDir = getExternalFilesDir(TemplateEngine.DIR_PREFIX_CHECKSUMS);
+		TemplateEngine te = new TemplateEngine(mAssetManager, externalDir);
+
+		// during development:
+		boolean needUpdate = true;	    
+
+		long s1,s2,e1,e2, sum1=0, sum2=0;
+		String md5Asset = null;
+		String md5Ext   = null;
+		
+		for (int i=0; i<100; i++)
+		{
+		    s1 = U.millis();
+		    md5Asset = te.getAsset(TemplateEngine.DIR_PREFIX_CHECKSUMS + "/webpages.md5");
+		    //md5Asset = te.getAsset(TemplateEngine.DIR_PREFIX_WEBPAGES + "/js/gardenoid.js");
+		    e1 = U.millis();
+		    sum1 += (e1-s1);
+
+		    s2 = U.millis();
+		    md5Ext = te.readExternalFile("webpages.md5");
+		    //md5Ext = te.readExternalFile("../webpages/js/gardenoid.js");
+		    e2 = U.millis();
+		    sum2 += (e2-s2);
+		}
+		System.out.println("asset: " + sum1 + "ms, external: " + sum2 + " ms");		
+		
+		if (null!=md5Ext && md5Ext.matches(md5Asset))
+		{
+		    needUpdate = false;
+		}	    
+
+		// prevent "dead code" warning:
+		boolean doIt = needUpdate; // && firstRun;
+		if (doIt)
+		{
+		    copyWebPagesToSDCard(TemplateEngine.DIR_PREFIX_WEBPAGES);
+		    copyWebPagesToSDCard(TemplateEngine.DIR_PREFIX_CHECKSUMS);
+		    // commit AFTER we copied pages
+		}
+
+		p.edit().putBoolean(PREFERENCE_RAN_BEFORE, true).commit();
 	    }
 	}
 	catch (Exception e)
 	{
 	    Log.e(TAG, "copyWebPagesToSDCard: " + e);
 	}
-	
+	*/
 	Log.e(TAG, "******** DONE: onCreate ********");
     }
     
-    
-    
+    /*    
     private void copyWebPagesToSDCard(String prefix) throws IOException
     {
 	File dir = getExternalFilesDir(prefix);
@@ -316,8 +355,9 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	    is.close();
 	}
     }
+    */
 
-
+    /*
     private void copyStream(InputStream input, FileOutputStream output) throws IOException
     {
 	byte [] buffer = new byte[256];
@@ -327,7 +367,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	    output.write(buffer, 0, bytesRead);
 	}    
     }
-
+    */
 
     private Handler mHandler = new Handler()
     {
