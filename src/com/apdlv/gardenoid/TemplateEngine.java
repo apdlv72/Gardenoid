@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 import android.content.res.AssetManager;
 
@@ -61,17 +62,23 @@ public class TemplateEngine
     
     public InputStream getFile(String fileName)
     {
+	return getFile(fileName, false);
+    }
+    
+    public InputStream getFile(String fileName, boolean compress)
+    {
+	InputStream is = null;
 	try 
 	{
 	    if (fileName.startsWith("/")) fileName = fileName.substring(1);
-	    InputStream is = findInputStream(fileName);	    
-	    return is;
+	    if (compress) fileName += ".gzip";
+	    is = findInputStream(fileName);
 	} 
 	catch (IOException e) 
 	{
 	    System.err.println("getFile: " + e);
 	} 
-	return null;
+	return is;
     }
 
 

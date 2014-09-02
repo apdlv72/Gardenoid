@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.Vector;
+import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -2223,6 +2224,17 @@ public class GardenoidService extends Service
 		return r;    	    
 	    }
 
+	    String content = msg.toString();
+	    if (content.length()>1024)
+	    {
+		// TODO: add compression here
+		InputStream is = new GZIPInputStream(new ByteArrayInputStream(content.getBytes()));
+		    Response r = new Response(Status.OK, CT_TEXT_JSON, is);
+		    r.addHeader("Pragma", "no-cache"); //System.out.println("SENDING: " + msg);
+		    r.addHeader("Content-Encoding", "no-cache"); //System.out.println("SENDING: " + msg);
+		    return r;
+	    }
+	    
 	    Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
 	    r.addHeader("Pragma", "no-cache"); //System.out.println("SENDING: " + msg);
 	    return r;
@@ -2293,6 +2305,9 @@ public class GardenoidService extends Service
 		return new Response(Status.OK, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
 	    }
 
+	    String ae = headers.get("accept-encoding");
+	    boolean gzipAccepted = (null!=ae && ae.contains("gzip"));
+	    
 	    Cookie session = getSession(params);	    
 	    Cookie cookie  = getOrCreateCookie(headers, session);	    
 	    System.out.println("serveUnsecurely: " + method + " '" + uri + "', cookie=" + cookie);
@@ -2536,15 +2551,19 @@ public class GardenoidService extends Service
 		
 	    if (template.endsWith(".js") || template.endsWith(".css"))
 	    {
-		page = mTemplateEngine.getPage(template);
-		if (null!=page)
+		InputStream is = mTemplateEngine.getFile(template, gzipAccepted);
+		if (null!=is)
 		{
 		    String expires = createExpirationDate();
 		    String ct = getContentType(template);
 
-		    Response r = new Response(Status.OK, ct, page);
+		    Response r = new Response(Status.OK, ct, is);
 		    r.addHeader("Cache-Control", "Public");
 		    r.addHeader("Expires", expires);
+		    if (gzipAccepted)
+		    {
+			r.addHeader("Content-Encoding", "gzip");
+		    }
 		    return r;
 		}
 	    }
