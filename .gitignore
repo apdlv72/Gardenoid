@@ -28,3 +28,4 @@ get/
 assets/checksums/webpages.md5
 assets/webpages/css/*gzip
 assets/webpages/js/*gzip
+assets/webpages/*gzip
