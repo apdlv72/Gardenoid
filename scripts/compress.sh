@@ -12,8 +12,9 @@ find . -name "*.html" | \
 while read F
 do
 	G="../assets/webpages/$F.gzip"
+	#echo "================"
 	#echo "Compressing $F => $G"
-	tr '\t' ' ' < "$F" |  sed -E -e "s/^ *//g; s/ *$//g; s/build=[0-9]+/build=$BUILD/g" | grep -v '^$' | gzip -c9 > "$G"
+	tr '\t' ' ' < "$F" |  tr '\r' '\n' | sed -E -e "s/^ *//g; s/ *$//g; s/build=[0-9]+/build=$BUILD/g; s/ +/ /g" | grep -v '^$' | grep -v '^<!--.*//-->$' | gzip -c9 > "$G"
 	printf "%-20s %6d -> %6d %20s\n" "$F" "$(cat $F | wc -c)" "$(cat $G | wc -c)" "$G"
 done
 
