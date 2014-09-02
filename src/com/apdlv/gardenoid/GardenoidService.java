@@ -33,7 +33,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -66,10 +65,9 @@ import com.apdlv.yahooweather.ForecastProvider;
 import com.apdlv.yahooweather.WeatherConditions;
 
 import fi.iki.elonen.NanoHTTPD_SSL;
+import fi.iki.elonen.NanoHTTPD_SSL.Response.Status;
 //import fi.iki.elonen.NanoHTTPD_SSL;
 //import com.apdlv.gardenoid.MyJson.JArray;
-
-import fi.iki.elonen.NanoHTTPD_SSL.Response.Status;
 
 
 
@@ -102,6 +100,7 @@ public class GardenoidService extends Service
     public final static TimeZone GMT_ZONE = TimeZone.getTimeZone("GMT");
 
     private String mProtocol = "undefined";
+    @SuppressWarnings("unused")
     private String mAddress  = "undefined";
     private int    mPort     = -1;		
 
@@ -185,10 +184,10 @@ public class GardenoidService extends Service
 	    return "Cookie[name=" + mName + ",auth=" + mAuthorized + ",ttl=" + ttl + ",sess=" + mSession + ",mobile=" + mMobile + "]";
 	}
 
-	public void setSession(boolean s)
-        {
-	    mSession = s; 
-        }
+//	public void setSession(boolean s)
+//        {
+//	    mSession = s; 
+//        }
 
 	public static boolean isAuthorized(Cookie session)
         {
@@ -1711,7 +1710,7 @@ public class GardenoidService extends Service
 	    return null;
 	}
 
-	private Response serveRest(String resource, Map<String, String> params) throws ParseException, JSONException	
+	private Response serveRest(String resource, Map<String, String> params) throws ParseException, JSONException, IOException	
 	{
 	    StringBuilder msg      = new StringBuilder();	
 
@@ -2240,16 +2239,16 @@ public class GardenoidService extends Service
 	    return r;
 	}
 
-	private String adjustDay(String day, int i) throws ParseException
-	{
-	    Date date = U.YYYYMMDD.parse(day);
-	    Calendar c = Calendar.getInstance();
-	    c.setTime(date);
-	    c.add(Calendar.DAY_OF_MONTH, i);
-
-	    day = U.YYYYMMDD.format(c.getTime());
-	    return day;
-	}
+//	private String adjustDay(String day, int i) throws ParseException
+//	{
+//	    Date date = U.YYYYMMDD.parse(day);
+//	    Calendar c = Calendar.getInstance();
+//	    c.setTime(date);
+//	    c.add(Calendar.DAY_OF_MONTH, i);
+//
+//	    day = U.YYYYMMDD.format(c.getTime());
+//	    return day;
+//	}
 
 //	@Override 
 //	public Response serve(IHTTPSession session) 
@@ -2298,7 +2297,7 @@ public class GardenoidService extends Service
 	    }
 	}
 	
-	public Response serveUnsecurely(Method method, String uri, Map<String, String> params, Map<String, String> headers, String remoteAddr) throws ParseException, JSONException 
+	public Response serveUnsecurely(Method method, String uri, Map<String, String> params, Map<String, String> headers, String remoteAddr) throws ParseException, JSONException, IOException 
 	{
 	    if (uri.startsWith("/favicon.ico"))
 	    {
