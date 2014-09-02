@@ -103,7 +103,7 @@ function set_strand_names()
 {
 	for (i=1; i<=8; i++)
 	{
-		var name = strands[i].name;
+		var name = global_strands[i].name;
 		$("#idTitle"+i).text(name);	
 	}
 }
@@ -132,7 +132,7 @@ function receive_rename(data)
 	// update lastReconfig (defined in gardenoid.js) to a reload due to configuration change:
 	lastReconfig = data["reconfig"];
 	
-	strands[no].name = name;
+	global_strands[no].name = name;
 	$("#idStrandName").text(name);
 	set_strand_names();
 	edit_strand_done();

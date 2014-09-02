@@ -1,32 +1,23 @@
 package com.apdlv.gardenoid;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
 
 import android.content.res.AssetManager;
 
 public class TemplateEngine
 {
     public static final String DIR_PREFIX_WEBPAGES  = "webpages";
-    public static final String DIR_PREFIX_CHECKSUMS = "checksums";
-    
+    //public static final String DIR_PREFIX_CHECKSUMS = "checksums";    
 
     public TemplateEngine(AssetManager assetManager, File externalDir)
     {
 	mAssetManager = assetManager;
-	mExternalDir  = externalDir;
+	//mExternalDir  = externalDir;
     }
     
-    
+    /*
     public String render(String templateName, Map<String,String> map)
     {
 	try
@@ -52,12 +43,12 @@ public class TemplateEngine
 	    return exceptionAsString;
 	}
     }
-    
 
     public String render(String templateName)
     {
 	return getPage(templateName);
     }
+    */
 
     
     public InputStream getFile(String fileName)
@@ -67,6 +58,7 @@ public class TemplateEngine
     
     public InputStream getFile(String fileName, boolean compress)
     {
+	// TODO: always read compressed version and unzip on the fly if not supported since GZIP support is the default rather than the exception  
 	InputStream is = null;
 	try 
 	{
@@ -81,7 +73,7 @@ public class TemplateEngine
 	return is;
     }
 
-
+    /*
     public String getPage(String templateName)
     {
 	BufferedReader reader = null;
@@ -112,25 +104,25 @@ public class TemplateEngine
 	}
 	return null;
     }
-
+    */
     
-    @SuppressWarnings("resource")
+    //@SuppressWarnings("resource")
     private InputStream findInputStream(String name) throws IOException
     {
 	InputStream is = null; 
 	try
 	{
-	    File file = new File(mExternalDir, name);
-	    if (file.exists())
-	    {
-		System.out.println("findInputStream: found on external storage: " + file);
-		is = new FileInputStream(file);
-	    }
-	    else
-	    {	
-		System.out.println("findInputStream: NOT found on external storage: " + file);
+//	    File file = new File(mExternalDir, name);
+//	    if (file.exists())
+//	    {
+//		System.out.println("findInputStream: found on external storage: " + file);
+//		is = new FileInputStream(file);
+//	    }
+//	    else
+//	    {	
+//		System.out.println("findInputStream: NOT found on external storage: " + file);
 		is = mAssetManager.open(DIR_PREFIX_WEBPAGES + "/" + name);
-	    }
+//	    }
 	}
 	catch (Exception e)
 	{
@@ -139,22 +131,22 @@ public class TemplateEngine
 	return is;
     }
 
-    
+    /*
     private static String emptyIfNull(String s)
     {
 	return null==s ? "" : s;
     }
-
-    private AssetManager mAssetManager;
-    private File mExternalDir;
-
-
+    */
+    
+    /*
     public String getAsset(String path) throws IOException
     {
 	InputStream is = mAssetManager.open(path);
 	return readAll(is);
     }
+    */
 
+    /*
     public String readExternalFile(String path) throws IOException
     {
 	File file = new File(mExternalDir, path);
@@ -166,7 +158,9 @@ public class TemplateEngine
 	}
 	return null;
     }
+    */
 
+    /*
     private String readAll(InputStream is) throws IOException
     {
 	if (null==is) return null;
@@ -183,5 +177,8 @@ public class TemplateEngine
 
 	return sb.toString();
     }
+    */
 
+    private AssetManager mAssetManager;
+    //private File         mExternalDir;
 }

@@ -216,7 +216,15 @@ function create_schedules_dom(no, template, schedule)
 	dom.find(".interval").text( to_hhmm(s["interval"] ));
 	
 	var idCondition   = s["idCondition"];
-	var conditionText = ""; try { conditionText = conditionals[idCondition]["name"]; } catch (e) {}    	
+	var conditionText = ""; 
+	try 
+	{ 
+		conditionText = global_conditionals[idCondition]["name"]; 
+	} 
+	catch (e) 
+	{	
+		conditionText = "" + e;
+	}    	
 	var conditionElem = dom.find(".conditionElem");
 	    	
 	if (null==idCondition || 0==idCondition)
@@ -231,7 +239,15 @@ function create_schedules_dom(no, template, schedule)
 	}
 	
 	var idException   = s["idException"];
-	var exceptionText = ""; try { exceptionText = conditionals[idException]["name"]; } catch (e) {}
+	var exceptionText = ""; 
+	try 
+	{ 
+		exceptionText = global_conditionals[idException]["name"]; 
+	} 
+	catch (e) 
+	{
+		conditionText = "" + e;
+	}
 	var exceptionElem = dom.find(".exceptionElem");
 	
 	if (null==idException || 0==idException)

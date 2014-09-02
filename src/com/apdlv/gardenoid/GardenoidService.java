@@ -2504,8 +2504,9 @@ public class GardenoidService extends Service
 	    if (uri.endsWith(".gif") || uri.endsWith(".png") || uri.endsWith(".jpg")) 
 	    {
 		String expires = createExpirationDate();
-		InputStream is = mTemplateEngine.getFile(uri); String ct = getContentType(uri);
-		Response r = new Response(Status.OK, ct, is);
+		InputStream is = mTemplateEngine.getFile(uri); 
+		String contentType = getContentType(uri);
+		Response r = new Response(Status.OK, contentType, is);
 		r.addHeader("Cache-Control", "Public");
 		r.addHeader("Expires", expires);
 		return r;
@@ -2515,22 +2516,27 @@ public class GardenoidService extends Service
 	    String page     = null;
 	    String template = uri; 
 
-	    if (template.equals("/js/conditionals.js"))
-	    {
-		String script = "var conditionals = " + Conditional.CONDITIONALS_JSON + ";";
-		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
-		// conditinals.js now called with build=XXX therefore no explicit cache control necessary  
-//		String expires = createExpirationDate();
-//		r.addHeader("Cache-Control", "Public");
-//		r.addHeader("Expires", expires);
-		return r;
-	    }
-	    
 	    if (template.equals("/js/global.js"))
-	    {
+	    {		
+		boolean withStrands      = params.containsKey("with_strands");
+		boolean withConditionals = params.containsKey("with_conditionals");
+		
 		String script = "";
 		script += "var global_desktop = " + (!cookie.isMobile()) + ";\n";
 		script += "var global_cookie  = " + cookie.getName()     + ";\n";
+		if (withStrands)
+		{
+		    String strandJS = createStrandsJS();
+		    // TODO: remove backwards compat. version of strandJS
+		    script += "var strands = "        + strandJS + ";\n";
+		    script += "var global_strands = " + strandJS + ";\n";
+		}
+		if (withConditionals)
+		{
+		    // TODO: remove backwards compat. version of CONDITIONALS_JSON
+		    script += "var conditionals = "        + Conditional.CONDITIONALS_JSON + ";";
+		    script += "var global_conditionals = " + Conditional.CONDITIONALS_JSON + ";";
+		}
 
 		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
 		// prevent caching
@@ -2540,26 +2546,43 @@ public class GardenoidService extends Service
 		return r;
 	    }
 	    
+	    // TODO: remove if not in use any more 
+	    if (template.equals("/js/conditionals.js"))
+	    {
+		System.err.println("############## ERROR ##############: DEPRECATED: /js/conditionals.js");
+		return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "conditionals.js deprecated");
+		/*
+		String script = "";
+		script += "var conditionals = "        + Conditional.CONDITIONALS_JSON + ";\n";
+		script += "var global_conditionals = " + Conditional.CONDITIONALS_JSON + ";\n";
+		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
+		// conditinals.js now called with build=XXX therefore no explicit cache control necessary  
+//		String expires = createExpirationDate();
+//		r.addHeader("Cache-Control", "Public");
+//		r.addHeader("Expires", expires);
+		return r;
+		*/
+	    }
+	    
+	    // TODO: remove if not in use any more 
 	    if (template.equals("/js/strands.js"))
 	    {
-		StringBuilder sb = new StringBuilder("{");
-		String strands[] = mDao.getAllStrands();
+		System.err.println("############## ERROR ##############: DEPRECATED: /js/strands.js");
+		return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "conditionals.js deprecated");
+		/*
+		String strandJS = createStrandsJS(); 
 		
-		for (int i=1; i<=8; i++)
-		{
-		    String name = strands[i-1];
-		    sb.append(i).append(":");
-		    sb.append("{\"name\":\"").append(name).append("\"},");
-		}
-		sb.append("9:{\"name\":null}}");
-		
-		String script = "var strands = " + sb.toString() + ";";
+		String script = "";
+		// TODO: remove backwards compat. version of strandJS
+		script += "var strands = "        + strandJS + ";\n";
+		script += "var global_strands = " + strandJS + ";\n";
 		String expires = createExpirationDate();
 
 		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
 		r.addHeader("Cache-Control", "Public");
 		r.addHeader("Expires", expires);
 		return r;
+		*/
 	    }
 		
 	    if (template.endsWith(".js") || template.endsWith(".css"))
@@ -2655,6 +2678,24 @@ public class GardenoidService extends Service
 		return r;
 	    }            
 	}
+
+	/**
+	 * @return
+	 */
+        private String createStrandsJS()
+        {
+	    String strands[] = mDao.getAllStrands();		
+	    StringBuilder sb = new StringBuilder("{");
+	    for (int i=1; i<=8; i++)
+	    {
+	        String name = strands[i-1];
+	        sb.append(i).append(":");
+	        sb.append("{\"name\":\"").append(name).append("\"},");
+	    }
+	    sb.append("9:{\"name\":null}}");
+	    String strandJS = sb.toString();
+	    return strandJS;
+        }
 
         private String getContentType(String uri)
         {
