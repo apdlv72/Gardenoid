@@ -293,16 +293,20 @@ public class GardenoidService extends Service
 	    return this;
 	}
 
-	public String toJsonX()
+	public String toJson()
 	{
 	    long now  = DAO.nowUnixtime();
 	    long left = getSecondsLeftX(now);
 	    long end  = endtimeUnix>now ? 0 : endtimeUnix; 
 	    try
 	    {
-		return new JSONObject().put("no",strandNo).put("end",end).put("left",left).put("active",left>0).toString();
+		return U.toJson(
+			"no",     strandNo, 
+			"end",    end, 
+			"left",   left, 
+			"active", left>0);
 	    }
-	    catch (JSONException e)
+	    catch (Exception e)
 	    {
 		e.printStackTrace();
 		return ""+e;
@@ -450,7 +454,7 @@ public class GardenoidService extends Service
 
 	public String toJson(int no)
 	{
-	    return oneTimeSchedules[no-1].toJsonX();
+	    return oneTimeSchedules[no-1].toJson();
 	}
 
 	public String toJson(long nowUnixtime)
