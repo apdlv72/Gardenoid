@@ -29,3 +29,5 @@ assets/checksums/webpages.md5
 assets/webpages/css/*gzip
 assets/webpages/js/*gzip
 assets/webpages/*gzip
+assets/webpages/css
+assets/webpages/js
