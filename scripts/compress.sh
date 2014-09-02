@@ -3,9 +3,18 @@
 cd "$(dirname "$0")"
 pwd
 
+BUILD="$(date +%s)"
+
 (
 cd ../assets/webpages
-find . -name "*.css" -or -name "*.js" | \
+
+find . -name "*.html" | \
+while read F
+do
+	sed -i "" -E -e "s/build=[0-9]+/build=$BUILD/g" "$F"
+done
+
+find . -name "*.css" -or -name "*.js" -or -name "*.html" | \
 while read F
 do 
 	gzip -9c "$F" > "$F.gzip"
