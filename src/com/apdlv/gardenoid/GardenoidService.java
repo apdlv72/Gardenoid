@@ -2105,10 +2105,10 @@ public class GardenoidService extends Service
 		msg.append(", \"reconfig\":\"").append(mDao.getLastReconfigId()).append("\"");  
 		msg.append(", \"discovering\":").append(isDiscovering());
 		msg.append(", \"connected\":").append(isConnected());
-		msg.append(", \"peer\":").append(MyJson.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
+		msg.append(", \"peer\":").append(U.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
 		msg.append(", \"now\":\"").append(U.toYYYYMMDD_hhmmss(now)).append("\"");
 		msg.append(", \"unixtime\":").append(nowUnixtime);
-		msg.append(", \"fingerprint\":").append(MyJson.nullOrEscapedInDoubleQuotes(newFingerprint));
+		msg.append(", \"fingerprint\":").append(U.nullOrEscapedInDoubleQuotes(newFingerprint));
 		msg.append(", \"power\":").append(mActiveStrandsMask|onetimeMask);
 		msg.append(", \"scheduled\":").append(mActiveStrandsMask);
 		msg.append(", \"onetime\":").append(onetimeMask);

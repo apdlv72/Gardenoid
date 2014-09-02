@@ -106,7 +106,8 @@ public class WGet
 	{
 		if (url.toLowerCase().startsWith("https") )
 		{
-			X509TrustManagerTrustAny.activate();
+//			X509TrustManagerTrustAny.activate();
+		    throw new RuntimeException("SSL not supported");
 		}
 
 		URL u = new URL(url);
