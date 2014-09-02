@@ -33,6 +33,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 
+import org.apache.http.client.protocol.RequestAddCookies;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -79,12 +80,17 @@ import fi.iki.elonen.NanoHTTPD_SSL.Response.Status;
  */
 public class GardenoidService extends Service 
 {
+    // TODO: make PASSWORD configurable
+    private static final char[] KEYSTORE_PASSWORD = "test99".toCharArray();
+    
     public static final int PORT_HTTP  = 8080;
     public static final int PORT_HTTPS = 8080;
 
     public static final String ACTION_NOTIFICATION = "GardenoidService.Notification.clicked";
 
     private static final String PREFKEY_BT_DEVICE_ADDR = "BT_DEVICE_ADDR";
+    private static final String PREFKEY_ADMIN_PASSWORD = "ADMIN_PASSWORD";
+    
     public static final int MSG_STATUS  = 1;
     public static final int MSG_SRVADDR = 2;
     public static final int MSG_MASK    = 3;
@@ -629,14 +635,13 @@ public class GardenoidService extends Service
 		InputStream certFile = getAssets().open("ssl/gardenoid." + type);
 	        if (certFile != null) 
 	        {
-	            String PASSWORD = "test99";	            
 	            //String type = "BKS"; // KeyStore.getDefaultType();
 	            KeyStore keyStore = KeyStore.getInstance(type);
 	            //KeyStore keyStore = KeyStore.getInstance(type);
-	            keyStore.load(certFile, PASSWORD.toCharArray());
+	            keyStore.load(certFile, KEYSTORE_PASSWORD);
 	            
 	            KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-	            factory.init(keyStore, PASSWORD.toCharArray());
+	            factory.init(keyStore, KEYSTORE_PASSWORD);
 	            
 	            SSLContext context = SSLContext.getInstance("SSL");
 	            context.init(factory.getKeyManagers(), null, new SecureRandom());
@@ -714,6 +719,31 @@ public class GardenoidService extends Service
 	    log(e);
 	}
     }
+    
+    
+    private String getAdminPassword()
+    {
+	SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
+	String password = null==p ? null : p.getString(PREFKEY_ADMIN_PASSWORD, null);
+	return password;
+    }
+    
+
+    private boolean setAdminPassword(String password)
+    {
+	try
+	{
+	    SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(this);
+	    p.edit().putString(PREFKEY_ADMIN_PASSWORD, password).commit();
+	    return true;	   
+	}
+	catch (Exception e)
+	{
+	    System.err.println("setAdminPassword: " + e);
+	}
+	return false;
+    }
+    
 
     private BroadcastReceiver mTickReceiver = new BroadcastReceiver()
     {
@@ -1710,7 +1740,7 @@ public class GardenoidService extends Service
 	    return null;
 	}
 
-	private Response serveRest(String resource, Map<String, String> params) throws ParseException, JSONException, IOException	
+	private Response createRestResponse(String resource, Map<String, String> params) throws ParseException, JSONException, IOException	
 	{
 	    StringBuilder msg      = new StringBuilder();	
 
@@ -2305,7 +2335,8 @@ public class GardenoidService extends Service
 	    }
 
 	    String ae = headers.get("accept-encoding");
-	    boolean gzipAccepted = (null!=ae && ae.contains("gzip"));
+	    boolean gzipAccepted   = (null!=ae && ae.contains("gzip"));
+	    boolean isLocalRequest = remoteAddr.startsWith("127.0.0.1");
 	    
 	    Cookie session = getSession(params);	    
 	    Cookie cookie  = getOrCreateCookie(headers, session);	    
@@ -2328,12 +2359,48 @@ public class GardenoidService extends Service
 		uri =  "/login.html";
 	    }
 	    
+	    if (isLocalRequest && uri.endsWith("/password.html"))
+	    {
+		String pass1 = params.get("pass1");
+		String pass2 = params.get("pass2");
+		if (null==pass1 || null==pass2)
+		{
+		    return new Redirect("/password.html?error=Passwords+missing", cookie.getName(), "Password(s) missing");
+		}
+		else if (!U.matches(pass1, pass2))
+		{
+		    if (setAdminPassword(pass1))
+		    {
+			return new Redirect("/login.html", cookie.getName(), "Admin password accepted");
+		    }
+		    else
+		    {
+			return new Redirect("/login.html", cookie.getName(), "Failed to set admin password");
+		    }
+		}
+		
+		return new Redirect("/password.html?error=Password+missmatch", cookie.getName(), "Passwords do not match");
+	    }
+	    
 	    if (uri.endsWith("/login.html"))
 	    {
-		String user   = params.get("user");
-		String pass   = params.get("pass");
+		String passwordExpected = getAdminPassword();
+		if (null==passwordExpected)		    
+		{
+		    if (isLocalRequest)
+		    {
+			return new Redirect("/password.html", cookie.getName(), "Password setup required");
+		    }
+		    else
+		    {
+			InputStream is = mTemplateEngine.getFile("reject.html", gzipAccepted);
+			return new Response(Status.OK, CT_TEXT_PLAIN, is);
+		    }
+		}
+
+		String pass = params.get("user");
 		
-		boolean authorized = cookie.isAuthorized() || (U.matches("art",user) && U.matches("test99",pass));						
+		boolean authorized = cookie.isAuthorized() || (U.matches(passwordExpected,pass));						
 		if (authorized) 
 		{
 		    boolean mobile = isMobileDevice(headers);
@@ -2344,16 +2411,10 @@ public class GardenoidService extends Service
 		    return new Redirect(location, cookie.getName(), "Login sucessful");
 		}
 		
-//		Map<String, String> map = new HashMap<String, String>(1); 
-//		map.put("version", mServiceVersion);
 		InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
 		Response r = new Response(Status.OK, CT_TEXT_HTML, is);
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
-	    }
-	    if (uri.startsWith("/forecast.html"))
-	    {
-		System.out.println("forecast.html: cookie=" + cookie);
 	    }
 	    
 	    if (uri.startsWith("/mobile.html"))
@@ -2382,287 +2443,37 @@ public class GardenoidService extends Service
 
 	    if (uri.startsWith("/rest"))
 	    {
-		String resource = uri.substring(5);        	
-		return serveRest(resource, params);
+		return createRestResponse(uri.substring(5), params);
 	    }
 	    else if (uri.startsWith("/api"))
 	    {		
-		StringBuilder msg = new StringBuilder();	    
-		msg.append("<html><body>\n");
-		msg.append("<a href=\"/\">[MAIN]</a>\n");
-		msg.append("<hr/>\n");
-
-		String resources[] = 
-		    { 
-			"devices/list",  
-			"events/list",  
-			"events/purge?confirm=no",  
-			"discover/start", "discover/cancel", "discover/toggle",
-			"queue/list",
-			"onetime/list",
-			"onetime/add?no=1&secs=60",
-			"onetime/set?no=2&secs=5",
-			"onetime/stop?no=1",
-			"schedules/list",
-			"schedules/active",
-			"schedules/get?id=17",
-			"schedules/modify?action=del&id=1",
-			"schedules/modify?action=add&strandMask=1&startTime=2300&endTime=2400&duration=0015&interval=0100&idCondition=103&conditionArgs=30&idException=0&exceptionArgs=&dayMask=1&monthMask=1",
-			"status",
-			"db/stats",
-			"weather/list",
-			"weather/compact?confirm=no",
-			"forecast/list",
-			"forecast/get?p=GMXX0018&u=c", // [p]lace code, temperature [u]nit
-			"command/I", "command/S", "command/H",
-		    };		
-
-		for (String res : resources)
-		{
-		    msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
-		}
-
-		msg.append("<hr>\n");
-		msg.append("Connect to:<br/>\n");
-
-		msg.append("Paired:<br/>\n");
-		for (BluetoothDevice d : mPairedDevices)
-		{
-		    String addr = d.getAddress();
-		    String name = d.getName();
-		    String res  = "device/select?addr=" + addr;
-		    msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
-		}
-
-		msg.append("Visible:<br/>\n");
-		for (BluetoothDevice d : mVisibleDevices)
-		{
-		    String addr = d.getAddress();
-		    String name = d.getName();
-		    String res  = "device/select?addr=" + addr;
-		    msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
-		}
-
-		msg.append("<hr>\n");
-		String res = "connection/stop"; 
-		msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
-
-		msg.append("</body></html>");
-		return new NanoHTTPD_SSL.Response(Status.OK, CT_TEXT_HTML, msg.toString());		
+		return createApiResponse();		
 	    }
-	    else if (uri.startsWith("/schedules/add"))
+	    else if (uri.endsWith(".gif") || uri.endsWith(".png") || uri.endsWith(".jpg")) 
 	    {
-		Map<String, String> map = params;
-
-		int strandMask = 0;
-		for (int n=1; n<8; n++)
-		{
-		    Integer i = toInteger(map.get("strand"+n));
-		    if (null!=i) strandMask|=i;
-		}
-
-		int dayMask = 0;
-		for (int n=0; n<7; n++)
-		{
-		    Integer i = toInteger(map.get("day"+n));
-		    if (null!=i) dayMask|=i;
-		}
-
-		int monthMask = 0;
-		for (int n=1; n<12; n++)
-		{
-		    Integer i = toInteger(map.get("month"+n));
-		    if (null!=i) monthMask|=i;
-		}
-
-		Integer startTime     = U.hh_mmToInt(map.get("start_time"));
-		Integer endTime       = U.hh_mmToInt(map.get("end_time"));
-		Integer interval      = U.hh_mmToInt(map.get("interval"));	
-		Integer duration      = U.hh_mmToInt(map.get("duration"));	
-		Integer idCondition   = toInteger(map.get("id_condition"));	
-		Integer idException   = toInteger (map.get("id_exception"));
-		String  conditionArgs = map.get("condition_args");	
-		String  exceptionArgs = map.get("exception_args");
-
-		Schedule schedule = new Schedule(strandMask, dayMask, monthMask, startTime, endTime, duration, interval, idCondition, conditionArgs, idException, exceptionArgs, false);
-		long id = mDao.addSchedule(schedule);
-
-		if (id>-1)
-		{
-		    Response r = new Response(Status.REDIRECT, CT_TEXT_JSON, "{ \"success\" : true }");
-		    r.addHeader("Refresh", "1; /");
-		    return r;
-		}
-		else
-		{
-		    Response r = new Response(Status.INTERNAL_ERROR, CT_TEXT_JSON, "{ \"success\" : false }");
-		    //r.addHeader("Refresh", "1; /schedules/add.html");
-		    return r;        	    
-		}
-	    }
-
-	    if (uri.endsWith(".gif") || uri.endsWith(".png") || uri.endsWith(".jpg")) 
-	    {
-		String expires = createExpirationDate();
-		InputStream is = mTemplateEngine.getRawFile(uri); 
-		String contentType = getContentType(uri);
-		Response r = new Response(Status.OK, contentType, is);
-		r.addHeader("Cache-Control", "Public");
-		r.addHeader("Expires", expires);
-		return r;
-
+		return createImageResponse(uri);
 	    }            
-
-	    String page     = null;
-	    String template = uri; 
-
-	    if (template.equals("/js/global.js"))
+	    else if (uri.equals("/js/global.js"))
 	    {		
-		boolean withStrands      = params.containsKey("with_strands");
-		boolean withConditionals = params.containsKey("with_conditionals");
-		
-		String script = "";
-		script += "var global_desktop = " + (!cookie.isMobile()) + ";\n";
-		script += "var global_cookie  = " + cookie.getName()     + ";\n";
-		if (withStrands)
-		{
-		    String strandJS = createStrandsJS();
-		    // TODO: remove backwards compat. version of strandJS
-		    script += "var strands = "        + strandJS + ";\n";
-		    script += "var global_strands = " + strandJS + ";\n";
-		}
-		if (withConditionals)
-		{
-		    // TODO: remove backwards compat. version of CONDITIONALS_JSON
-		    script += "var conditionals = "        + Conditional.CONDITIONALS_JSON + ";";
-		    script += "var global_conditionals = " + Conditional.CONDITIONALS_JSON + ";";
-		}
-
-		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
-		// prevent caching
-		r.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-		r.addHeader("Pragma", "no-cache");
-		r.addHeader("Expires", "0");
-		return r;
-	    }
-	    
-	    // TODO: remove if not in use any more 
-	    if (template.equals("/js/conditionals.js"))
+		return createGlobalJsResponse(params, cookie);
+	    }	    
+	    else if (uri.endsWith(".js") || uri.endsWith(".css"))
 	    {
-		System.err.println("############## ERROR ##############: DEPRECATED: /js/conditionals.js");
-		return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "conditionals.js deprecated");
-		/*
-		String script = "";
-		script += "var conditionals = "        + Conditional.CONDITIONALS_JSON + ";\n";
-		script += "var global_conditionals = " + Conditional.CONDITIONALS_JSON + ";\n";
-		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
-		// conditinals.js now called with build=XXX therefore no explicit cache control necessary  
-//		String expires = createExpirationDate();
-//		r.addHeader("Cache-Control", "Public");
-//		r.addHeader("Expires", expires);
-		return r;
-		*/
+		return createStaticFileResponse(uri, gzipAccepted);
 	    }
-	    
-	    // TODO: remove if not in use any more 
-	    if (template.equals("/js/strands.js"))
-	    {
-		System.err.println("############## ERROR ##############: DEPRECATED: /js/strands.js");
-		return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "conditionals.js deprecated");
-		/*
-		String strandJS = createStrandsJS(); 
-		
-		String script = "";
-		// TODO: remove backwards compat. version of strandJS
-		script += "var strands = "        + strandJS + ";\n";
-		script += "var global_strands = " + strandJS + ";\n";
-		String expires = createExpirationDate();
-
-		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
-		r.addHeader("Cache-Control", "Public");
-		r.addHeader("Expires", expires);
-		return r;
-		*/
-	    }
-		
-	    if (template.endsWith(".js") || template.endsWith(".css"))
-	    {
-		InputStream is = mTemplateEngine.getFile(template, gzipAccepted);
-		if (null!=is)
-		{
-		    String expires = createExpirationDate();
-		    String ct = getContentType(template);
-
-		    Response r = new Response(Status.OK, ct, is);
-		    r.addHeader("Cache-Control", "Public");
-		    r.addHeader("Expires", expires);
-		    if (gzipAccepted)
-		    {
-			r.addHeader("Content-Encoding", "gzip");
-		    }
-		    return r;
-		}
-	    }
-
-	    // editing of schedules now completely in the schedules.html page 
-	    /*
-	    if (template.equals("/schedules/edit.html"))
-	    {
-		System.out.println("serve: fetching session parms");
-
-		String  action = params.get("action");
-		Integer id     = toInteger(params.get("id"));
-
-		Schedule s = null;
-		if (equals(action, "add"))
-		{
-		    s = Schedule.TEMPLATE;
-		}
-		else if (equals(action, "edit"))
-		{
-		    s = (null==id) ? null : mDao.getSchedule(id);        	    
-		}
-
-		if (null==s)
-		{
-		    return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "Schedule ID " + id + " not found");
-		}
-
-		Map<String, String> map = new HashMap<String, String>(3); 
-		map.put("action", action);
-		map.put("id", ""+id);
-		// TODO: check if this is still necessary (now generating conditionls.js) 
-		map.put("conditionals", Conditional.CONDITIONALS_JSON);        	
-
-		System.out.println("serve: rendering template");
-		page = mTemplateEngine.render(template, map);
-		System.out.println("serve: sending page");
-		return new Response(Status.OK, CT_TEXT_HTML, page);
-	    }
-	    */
 
 	    if ("/".equals(uri) || "".equals(uri)) 
 	    { 
 		uri="/index.html";
 	    }
 
-	    Map<String, String> map = this.toMap();
-	    map.put("cookie",       cookie.getName());
-	    map.put("desktop",      cookie.isMobile() ? "false" : "true");
-	    map.put("conditionals", Conditional.CONDITIONALS_JSON);        
-	    map.put("version",      mServiceVersion);
-	    map.putAll(params);
-
 	    InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
-	    //page = mTemplateEngine.render(uri, map);
-	    is = mTemplateEngine.getRawFile(uri);
-	    if (null==page)
+	    if (null==is)
 	    {            
 		//page = mTemplateEngine.render("index.html", map);
 		is = mTemplateEngine.getRawFile("index.html");
 	    }
 
-	    //if (null==page)
 	    if (null==is)
 	    {
 		Response r = new Response(Status.NOT_FOUND, CT_TEXT_HTML, "Not found");
@@ -2679,10 +2490,133 @@ public class GardenoidService extends Service
 	    }            
 	}
 
-	/**
-	 * @return
-	 */
-        private String createStrandsJS()
+        private Response createGlobalJsResponse(Map<String, String> params, Cookie cookie)
+        {
+	    boolean withStrands      = params.containsKey("with_strands");
+	    boolean withConditionals = params.containsKey("with_conditionals");
+	    
+	    String script = "";
+	    script += "var global_version = " +  mServiceVersion     + ";\n";
+	    script += "var global_desktop = " + (!cookie.isMobile()) + ";\n";
+	    script += "var global_cookie  = " + cookie.getName()     + ";\n";
+	    
+	    if (withStrands)
+	    {
+	        script += "var global_strands = " + createStrandsJS() + ";\n";
+	    }
+	    
+	    if (withConditionals)
+	    {
+	        script += "var global_conditionals = " + Conditional.CONDITIONALS_JSON + ";";
+	    }
+
+	    Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
+	    // prevent caching
+	    r.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	    r.addHeader("Pragma", "no-cache");
+	    r.addHeader("Expires", "0");
+	    return r;
+        }
+
+        private Response createStaticFileResponse(String uri, boolean gzipAccepted)
+        {
+	    InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
+	    if (null!=is)
+	    {
+	        String expires = createExpirationDate();
+	        String ct = getContentType(uri);
+
+	        Response r = new Response(Status.OK, ct, is);
+	        r.addHeader("Cache-Control", "Public");
+	        r.addHeader("Expires", expires);
+	        if (gzipAccepted)
+	        {
+	    	r.addHeader("Content-Encoding", "gzip");
+	        }
+	        return r;
+	    }
+	    return new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "Not found");
+        }
+
+        private Response createImageResponse(String uri)
+        {
+	    String expires = createExpirationDate();
+	    InputStream is = mTemplateEngine.getRawFile(uri); 
+	    String contentType = getContentType(uri);
+	    Response r = new Response(Status.OK, contentType, is);
+	    r.addHeader("Cache-Control", "Public");
+	    r.addHeader("Expires", expires);
+	    return r;
+        }
+
+        private Response createApiResponse()
+        {
+	    StringBuilder msg = new StringBuilder();	    
+	    msg.append("<html><body>\n");
+	    msg.append("<a href=\"/\">[MAIN]</a>\n");
+	    msg.append("<hr/>\n");
+
+	    String resources[] = 
+	        { 
+	    	"devices/list",  
+	    	"events/list",  
+	    	"events/purge?confirm=no",  
+	    	"discover/start", "discover/cancel", "discover/toggle",
+	    	"queue/list",
+	    	"onetime/list",
+	    	"onetime/add?no=1&secs=60",
+	    	"onetime/set?no=2&secs=5",
+	    	"onetime/stop?no=1",
+	    	"schedules/list",
+	    	"schedules/active",
+	    	"schedules/get?id=17",
+	    	"schedules/modify?action=del&id=1",
+	    	"schedules/modify?action=add&strandMask=1&startTime=2300&endTime=2400&duration=0015&interval=0100&idCondition=103&conditionArgs=30&idException=0&exceptionArgs=&dayMask=1&monthMask=1",
+	    	"status",
+	    	"db/stats",
+	    	"weather/list",
+	    	"weather/compact?confirm=no",
+	    	"forecast/list",
+	    	"forecast/get?p=GMXX0018&u=c", // [p]lace code, temperature [u]nit
+	    	"command/I", "command/S", "command/H",
+	        };		
+
+	    for (String res : resources)
+	    {
+	        msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
+	    }
+
+	    msg.append("<hr>\n");
+	    msg.append("Connect to:<br/>\n");
+
+	    msg.append("Paired:<br/>\n");
+	    for (BluetoothDevice d : mPairedDevices)
+	    {
+	        String addr = d.getAddress();
+	        String name = d.getName();
+	        String res  = "device/select?addr=" + addr;
+	        msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
+	    }
+
+	    msg.append("Visible:<br/>\n");
+	    for (BluetoothDevice d : mVisibleDevices)
+	    {
+	        String addr = d.getAddress();
+	        String name = d.getName();
+	        String res  = "device/select?addr=" + addr;
+	        msg.append("<a href=\"/rest/" + res + "\">/rest/" + name + "</a><br/>\n");
+	    }
+
+	    msg.append("<hr>\n");
+	    String res = "connection/stop"; 
+	    msg.append("<a href=\"/rest/" + res + "\">/rest/" + res + "</a><br/>\n");
+
+	    msg.append("</body></html>");
+	    return new NanoHTTPD_SSL.Response(Status.OK, CT_TEXT_HTML, msg.toString());
+        }
+
+
+	private String createStrandsJS()
         {
 	    String strands[] = mDao.getAllStrands();		
 	    StringBuilder sb = new StringBuilder("{");

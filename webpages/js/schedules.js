@@ -516,11 +516,6 @@ function set_input_values(schedule)
  	$("select[name='idException']").val(idException);    		 	    		 	
 	$("input[name='conditionArgs']").val(conditionArgs);
 	$("input[name='exceptionArgs']").val(exceptionArgs);    		 	
-
- 	// $("input[name='idCondition2']").val(idCondition);
- 	// $("input[name='idException2']").val(idException);    		 	    		 	
-	// $("input[name='conditionArgs2']").val(conditionArgs);
-	// $("input[name='exceptionArgs2']").val(exceptionArgs);    		 	        	
 }    
 
 
