@@ -9,6 +9,8 @@ import com.apdlv.utils.U;
 
 public class Weather
 {
+    public static final Weather NONE = new Weather(DAO.now(), -1, "UNAVAILABLE", 0, 0, 0, 0, 0);
+
     public Weather() {}
  
     public Weather(
@@ -156,6 +158,36 @@ public class Weather
 	return Calendar.getInstance();
     }
 
+    public String toJson()
+    {
+	return U.toJson(
+		"id",   id,
+		"date", U.YYYYMMDD_hhmmss.format(getDate().getTime()),
+		"code", code, 
+		"text", text,
+		"t",    temperature,
+		"hum",  humidity,
+		"visi", visibility,
+		"p",    pressure,
+		"rise", rising,
+		"upd",  U.YYYYMMDD_hhmmss.format(getUpdated().getTime())
+		);		
+//	StringBuilder sb = new StringBuilder();
+//	sb.append("  { ");
+//	sb.append("\"id\": ").append(getId()).append(", ");
+//	sb.append("\"date\": \"").append(U.YYYYMMDD_hhmmss.format(getDate().getTime())).append("\", ");
+//	sb.append("\"code\": ").append(getCode()).append(", ");
+//	sb.append("\"text\": ").append(U.escapedOrNull(getText())).append(", ");
+//	sb.append("\"t\": ").append(getTemperature()).append(", ");
+//	sb.append("\"hum\": ").append(getHumidity()).append(", ");
+//	sb.append("\"visi\": ").append(getVisibility()).append(", ");
+//	sb.append("\"p\": ").append(getPressure()).append(", ");
+//	sb.append("\"rise\": ").append(getRising()).append(", ");
+//	sb.append("\"upd\": \"").append(U.YYYYMMDD_hhmmss.format(getUpdated().getTime())).append("\"");
+//	sb.append(" }");
+//	return sb.toString();
+    }   
+
     private long     id;
     private Calendar date, updated;
     private int      code;
@@ -166,24 +198,4 @@ public class Weather
     private float    visibility;
     private float    pressure;
     private float    rising;
-    public static final Weather NONE = new Weather(DAO.now(), -1, "UNAVAILABLE", 0, 0, 0, 0, 0);
-    
-    
-    public String toJson()
-    {
-	StringBuilder sb = new StringBuilder();
-	sb.append("  { ");
-	sb.append("\"id\": ").append(getId()).append(", ");
-	sb.append("\"date\": \"").append(U.YYYYMMDD_hhmmss.format(getDate().getTime())).append("\", ");
-	sb.append("\"code\": ").append(getCode()).append(", ");
-	sb.append("\"text\": ").append(U.escapedOrNull(getText())).append(", ");
-	sb.append("\"t\": ").append(getTemperature()).append(", ");
-	sb.append("\"hum\": ").append(getHumidity()).append(", ");
-	sb.append("\"visi\": ").append(getVisibility()).append(", ");
-	sb.append("\"p\": ").append(getPressure()).append(", ");
-	sb.append("\"rise\": ").append(getRising()).append(", ");
-	sb.append("\"upd\": \"").append(U.YYYYMMDD_hhmmss.format(getUpdated().getTime())).append("\"");
-	sb.append(" }");
-	return sb.toString();
-    }   
 }

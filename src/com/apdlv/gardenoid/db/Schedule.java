@@ -1,45 +1,25 @@
 package com.apdlv.gardenoid.db;
 
-import com.apdlv.utils.U;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.json.JSONObject;
+
+import com.apdlv.utils.U;
 
 public class Schedule
 {
-    public static final int DAY_SUN = 0;
-    public static final int DAY_MON = 1;
-    public static final int DAY_TUE = 2;
-    public static final int DAY_WED = 3;
-    public static final int DAY_THU = 4;
-    public static final int DAY_FRI = 5;
-    public static final int DAY_SAT = 6;
-
-    public static final String dayName(int day)
+    public static final String[] DAY_NAMES = new String[]
     {
-	switch (day%7)
-	{
-	case DAY_SUN : return "Sun"; 
-	case DAY_MON : return "Mon"; 
-	case DAY_TUE : return "Tue"; 
-	case DAY_WED : return "Wed"; 
-	case DAY_THU : return "Thu"; 
-	case DAY_FRI : return "Fri"; 
-	case DAY_SAT : return "Sat"; 
-	}
-	return null;
-    }
-
-    public static final int MONTH_JAN =  1;
-    public static final int MONTH_FEB =  2;
-    public static final int MONTH_MAR =  3;
-    public static final int MONTH_APR =  4;
-    public static final int MONTH_MAY =  5;
-    public static final int MONTH_JUN =  6;
-    public static final int MONTH_JUL =  7;
-    public static final int MONTH_AUG =  8;
-    public static final int MONTH_SEP =  9;
-    public static final int MONTH_OCT = 10;
-    public static final int MONTH_NOV = 11;
-    public static final int MONTH_DEC = 12;
+	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
+    };
+    
+    public static final String[] MONTH_NAMES = new String[]
+    {
+	null, // 0
+	"Jan", "Feb", "Mar", "Apr", "Mar", "May",
+	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
     
     public static final Schedule TEMPLATE = new Schedule(
 	    0, 0x37, 0x01ff8, // no strand, Mo-Fr, Apr-Sep  
@@ -48,25 +28,14 @@ public class Schedule
 	    , false
 	    );
     
+    public static final String dayName(int day)
+    {
+	return DAY_NAMES[(day%7)];
+    }
+    
     public static final String monthName(int month)
     {
-	switch (((month-1)%12)+1)
-	{
-	case 0       : return null;
-	case MONTH_JAN : return "Jan"; 
-	case MONTH_FEB : return "Feb"; 
-	case MONTH_MAR : return "Mar"; 
-	case MONTH_APR : return "Apr"; 
-	case MONTH_MAY : return "May"; 
-	case MONTH_JUN : return "Jun"; 
-	case MONTH_JUL : return "Jul"; 
-	case MONTH_AUG : return "Aug"; 
-	case MONTH_SEP : return "Sep"; 
-	case MONTH_OCT : return "Oct"; 
-	case MONTH_NOV : return "Nov"; 
-	case MONTH_DEC : return "Dec"; 
-	}
-	return null;
+	return MONTH_NAMES[(((month-1)%12)+1)];
     }
     
     public Schedule() {}
@@ -264,35 +233,68 @@ public class Schedule
 
     public String toJson()
     {
-	StringBuilder sb = new StringBuilder();
-	sb.append("    { ");        	    
-	sb.append(  "\"id\" : ").append(getId());
-	sb.append(", \"active\" : ").append(getActive());
-	sb.append(", \"strandMask\" : ").append(getStrandMask());
-	sb.append(", \"dayMask\" : ").append(getDayMask());
-	sb.append(", \"monthMask\" : ").append(getMonthMask());
-
-	sb.append(", \"startTime\" : \"").append(getStartTime()).append("\"");
-	sb.append(", \"endTime\" : \"").append(getEndTime()).append("\"");
-	sb.append(", \"duration\" : \"").append(getDuration()).append("\"");
-	sb.append(", \"interval\" : \"").append(getInterval()).append("\"");
-	sb.append(", \"idCondition\" : ").append(getIdCondition());
-	sb.append(", \"conditionArgs\" : ").append(U.nullOrEscapedInDoubleQuotes(getConditionArgs())).append("");
-	sb.append(", \"idException\" : ").append(getIdException());
-	sb.append(", \"exceptionArgs\" : ").append(U.nullOrEscapedInDoubleQuotes(getExceptionArgs())).append("");    
-	sb.append(", \"power\" : ").append(isPower());    
-	sb.append(" }");
-	return sb.toString();	
+//	HashMap<String, Object> map = 
+//		new HashMap<String, Object>()
+//		{{
+//		   put("id",getId()); 
+//		   put("active",getActive()); 
+//		   put("strandMask",getStrandMask()); 
+//		   put("dayMask",getDayMask()); 
+//		   put("monthMask",getMonthMask()); 
+//		   put("startTime",getStartTime()); 
+//		   put("endTime",getEndTime()); 
+//		   put("duration",getDuration()); 
+//		   put("interval",getInterval()); 
+//		   put("idCondition",getIdCondition()); 
+//		   put("conditionArgs",getConditionArgs()); 
+//		   put("idException",getIdException()); 
+//		   put("exceptionArgs",getExceptionArgs()); 
+//		   put("power",isPower()); 
+//		}};
+//	return (new JSONObject(map)).toString();
+	
+	return U.toJson(
+		"id",            id, 
+                "active",        active, 
+                "strandMask",    strandMask, 
+                "dayMask",       dayMask,
+                "monthMask",     monthMask, 
+                "startTime",     startTime, 
+                "endTime",       endTime,
+                "duration",      duration, 
+                "interval",      interval, 
+                "idCondition",   getIdCondition(), 
+                "conditionArgs", getConditionArgs(), 
+                "idException",   getIdException(), 
+                "exceptionArgs", getExceptionArgs(), 
+                "power",         isPower()); 
+	
+//	StringBuilder sb = new StringBuilder();
+//	sb.append("{");        	    
+//	sb.append(  "\"id\":").append(getId());
+//	sb.append(",\"active\":").append(getActive());
+//	sb.append(",\"strandMask\":").append(getStrandMask());
+//	sb.append(",\"dayMask\":").append(getDayMask());
+//	sb.append(",\"monthMask\":").append(getMonthMask());
+//	sb.append(",\"startTime\":\"").append(getStartTime()).append("\"");
+//	sb.append(",\"endTime\":\"").append(getEndTime()).append("\"");
+//	sb.append(",\"duration\":\"").append(getDuration()).append("\"");
+//	sb.append(",\"interval\":\"").append(getInterval()).append("\"");
+//	sb.append(",\"idCondition\":").append(getIdCondition());
+//	sb.append(",\"conditionArgs\":").append(U.nullOrEscapedInDoubleQuotes(getConditionArgs())).append("");
+//	sb.append(",\"idException\":").append(getIdException());
+//	sb.append(",\"exceptionArgs\":").append(U.nullOrEscapedInDoubleQuotes(getExceptionArgs())).append("");    
+//	sb.append(",\"power\":").append(isPower());    
+//	sb.append("}");
+//	return sb.toString();	
     }
-    
     
     @Override
     public String toString() 
     {
         return Schedule.class.getSimpleName() + toJson();
     }
-    
-    
+        
     private long id;
     private int strandMask;
     private int dayMask;

@@ -4,6 +4,8 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 import com.apdlv.utils.U;
 
 
@@ -118,25 +120,33 @@ public class Forecast
 
     public String toJson(Calendar todayNoon)
     {
-	StringBuilder sb = new StringBuilder();
-	sb.append("  { ");
-	sb.append("\"id\": ").append(getId()).append(", ");
-	sb.append("\"day\": \"").append(U.YYYYMMDD.format(getDay().getTime())).append("\", ");
-	sb.append("\"code\": ").append(getCode()).append(", ");
-	sb.append("\"text\": ").append(U.escapedOrNull(getText())).append(", ");
-	sb.append("\"low\": ").append(getLow()).append(", ");
-	sb.append("\"high\": ").append(getHigh()).append(", ");
-	
 	Calendar dayNoon = getDay();
 	boolean future = dayNoon.after(todayNoon); 
-	sb.append("\"future\": ").append(future).append(", ");
-	
 	Calendar u = getUpdated();
-	String updated = null==u ? "null" : "\"" + U.YYYYMMDD_hhmmss.format(getUpdated().getTime()) + "\""; 
+	String updated = null==u ? "null" : "\"" + U.YYYYMMDD_hhmmss.format(getUpdated().getTime()) + "\"";
 	
-	sb.append("\"upd\": ").append(updated);
-	sb.append(" }");
-	return sb.toString();
+	return U.toJson(
+		"id",     id,
+		"day",    U.YYYYMMDD.format(day.getTime()),
+		"code",   code,
+		"text",   text,
+		"low",    low,
+		"high",   high,
+		"future", future,
+		"upd",    updated);
+	
+//	StringBuilder sb = new StringBuilder();
+//	sb.append("  { ");
+//	sb.append("\"id\": ").append(getId()).append(", ");
+//	sb.append("\"day\": \"").append(U.YYYYMMDD.format(getDay().getTime())).append("\", ");
+//	sb.append("\"code\": ").append(getCode()).append(", ");
+//	sb.append("\"text\": ").append(U.escapedOrNull(getText())).append(", ");
+//	sb.append("\"low\": ").append(getLow()).append(", ");
+//	sb.append("\"high\": ").append(getHigh()).append(", ");	
+//	sb.append("\"future\": ").append(future).append(", ");
+//	sb.append("\"upd\": ").append(updated);
+//	sb.append(" }");
+//	return sb.toString();
     }
 
     public static final Forecast NONE = new Forecast(Calendar.getInstance(), -1, "UNAVAILABLE", 0, 0);

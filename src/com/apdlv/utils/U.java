@@ -5,6 +5,10 @@ import java.io.StringWriter;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.json.JSONObject;
 
 public class U
 {
@@ -117,4 +121,23 @@ public class U
 	return key;
     }
 
+    public static Map<String,Object> toMap(Object ... keyVals)
+    {
+	HashMap<String,Object> map = new HashMap<String,Object>();
+	
+	for (int i=0; i<keyVals.length; i+=2)
+	{
+	    String key = (String) keyVals[i];
+	    String val = (String) keyVals[i+1];
+	    map.put(key, val);
+	}
+	
+	return map;
+    }
+
+    
+    public static String toJson(Object ... keyVals)
+    {
+	return (new JSONObject(toMap(keyVals))).toString();
+    }
 }

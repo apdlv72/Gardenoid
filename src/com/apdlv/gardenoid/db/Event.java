@@ -140,12 +140,19 @@ public class Event
     {
 	try
 	{
-	    String str = new JSONObject()
-	    .put("id",   id)
-	    .put("date", U.YYYYMMDD_hhmmss.format(datetime.getTime()))
-	    .put("mask", activeMask)
-	    .put("msg",  message)
-	    .toString();
+	    String str = U.toJson(
+		    "id",  id,
+		    "date,  U.YYYYMMDD_hhmmss.format(datetime.getTime())," +
+		    "mask", activeMask,
+		    "msg",  message
+	    );
+	    
+//	    String str = new JSONObject()
+//	    .put("id",   id)
+//	    .put("date", U.YYYYMMDD_hhmmss.format(datetime.getTime()))
+//	    .put("mask", activeMask)
+//	    .put("msg",  message)
+//	    .toString();
 	    str = str.replace("}", ",\"json\":" + json + "}");
 	    return str;
 	}
