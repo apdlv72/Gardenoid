@@ -23,3 +23,6 @@ local.properties
 proguard/
 bin/*
 get/
+.externalToolBuilders
+.DS_Store
+assets/checksums/webpages.md5
