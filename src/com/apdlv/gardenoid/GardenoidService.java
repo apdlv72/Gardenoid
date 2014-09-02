@@ -2504,7 +2504,7 @@ public class GardenoidService extends Service
 	    if (uri.endsWith(".gif") || uri.endsWith(".png") || uri.endsWith(".jpg")) 
 	    {
 		String expires = createExpirationDate();
-		InputStream is = mTemplateEngine.getFile(uri); 
+		InputStream is = mTemplateEngine.getRawFile(uri); 
 		String contentType = getContentType(uri);
 		Response r = new Response(Status.OK, contentType, is);
 		r.addHeader("Cache-Control", "Public");
@@ -2653,13 +2653,13 @@ public class GardenoidService extends Service
 	    map.put("version",      mServiceVersion);
 	    map.putAll(params);
 
-	    InputStream is = mTemplateEngine.getFile(uri);
+	    InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
 	    //page = mTemplateEngine.render(uri, map);
-	    is = mTemplateEngine.getFile(uri);
+	    is = mTemplateEngine.getRawFile(uri);
 	    if (null==page)
 	    {            
 		//page = mTemplateEngine.render("index.html", map);
-		is = mTemplateEngine.getFile("index.html");
+		is = mTemplateEngine.getRawFile("index.html");
 	    }
 
 	    //if (null==page)

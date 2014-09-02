@@ -3,6 +3,7 @@ package com.apdlv.gardenoid;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 
 import android.content.res.AssetManager;
 
@@ -49,22 +50,35 @@ public class TemplateEngine
 	return getPage(templateName);
     }
     */
-
     
-    public InputStream getFile(String fileName)
+    public InputStream getRawFile(String fileName)
     {
-	return getFile(fileName, false);
+	try
+	{
+	    return findInputStream(fileName);
+	}
+	catch (IOException e) 
+	{
+	    System.err.println("getFile: " + e);
+	} 
+	return null;
     }
     
-    public InputStream getFile(String fileName, boolean compress)
+    public InputStream getFile(String fileName, boolean gzipAccepted)
     {
 	// TODO: always read compressed version and unzip on the fly if not supported since GZIP support is the default rather than the exception  
 	InputStream is = null;
 	try 
 	{
 	    if (fileName.startsWith("/")) fileName = fileName.substring(1);
-	    if (compress) fileName += ".gzip";
+	    fileName += ".gzip";
 	    is = findInputStream(fileName);
+	    
+	    if (null!=is && !gzipAccepted)
+	    {
+		// uncompress on the fly of the client does not support compression
+		is = new GZIPInputStream(is);
+	    }
 	} 
 	catch (IOException e) 
 	{
