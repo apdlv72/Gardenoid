@@ -68,45 +68,6 @@ function from_hhmm(hhmm)
 	return parseInt(hhmm);
 }
 
-function format_strand_mask(mask)
-{
-	mask = parseInt(mask);
-	//strands = [ "ME1", "ME2", "HED", "BAM", "VEG", "FRO", "IMM", "ADD" ];
-	res  = "";
-	for (i=0; i<8; i++) 
-	{	
-		if (mask&1) res+="▇"; else res+="▁";
-		mask=mask>>1;
-	}		
-	return res;
-}
-
-function format_day_mask(mask)
-{
-	mask = parseInt(mask);
-	//days = [ "-", "-", "_", "Th", "Fr", "Sa", "Su" ];
-	res  = "";
-	for (i=0; i<7; i++) 
-	{	
-		if (mask&1) res+="▇"; else res+="▁";
-		mask=mask>>1;
-	}		
-	return res;
-}
-
-function format_month_mask(mask)
-{
-	mask = parseInt(mask);
-	//mons = [ "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D" ];
-	res  = "";
-	for (i=0; i<12; i++) 
-	{	
-		if (mask&1) res+="▇"; else res+="▁";
-		mask=mask>>1;
-	}		
-	return res;
-}
-
 function mask_to_bitarray(mask, bits)
 {
 	mask = parseInt(mask);
@@ -118,7 +79,6 @@ function mask_to_bitarray(mask, bits)
 	}	
 	return a;
 }
-
 
 function make_nonce()
 {

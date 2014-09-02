@@ -13,7 +13,7 @@ while read F
 do
 	G="../assets/webpages/$F.gzip"
 	#echo "Compressing $F => $G"
-	sed -E -e "s/build=[0-9]+/build=$BUILD/g" "$F" | gzip -c9 > "$G"
+	tr '\t' ' ' < "$F" |  sed -E -e "s/^ *//g; s/ *$//g; s/build=[0-9]+/build=$BUILD/g" | grep -v '^$' | gzip -c9 > "$G"
 	printf "%-20s %6d -> %6d %20s\n" "$F" "$(cat $F | wc -c)" "$(cat $G | wc -c)" "$G"
 done
 
@@ -22,7 +22,8 @@ while read F
 do 
 	G="../assets/webpages/$F.gzip"
 	#echo "Compressing $F => $G"
-	gzip -9c "$F" > "$G"
+	tr '\t' ' ' < "$F" |  sed -E -e "s/^ *//g; s/ *$//g;" | grep -v '^$' | gzip -c9 > "$G"
+	#gzip -9c "$F" > "$G"
 	printf "%-20s %6d -> %6d %20s\n" "$F" "$(cat $F | wc -c)" "$(cat $G | wc -c)" "$G"
 done
 
