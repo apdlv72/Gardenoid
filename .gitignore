@@ -26,3 +26,5 @@ get/
 .externalToolBuilders
 .DS_Store
 assets/checksums/webpages.md5
+assets/webpages/css/*gzip
+assets/webpages/js/*gzip
