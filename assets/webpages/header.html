@@ -4,9 +4,9 @@
   <head>
     <title>Gardenoid Desktop Version</title>
     <!-- not using abs. paths -> preview page on disc //-->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/gardenoid.js"></script>
-    <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>
+    <script src="js/jquery.min.js?build=1409646769"></script>
+    <script src="js/gardenoid.js?build=1409646769"></script>
+    <link rel="stylesheet" href="css/gardenoid.css?build=1409646769" type="text/css" charset="utf-8"/>
     <script>
 function add_schedule()
 {
@@ -23,13 +23,13 @@ function add_schedule()
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
 			<div id="idLinkMobile"   class="statusText" style="font-size: 16px;"><a href="/mobile.html" target="_top">[MOBILE VERSION]</a></div>
-			<div style="margin: 5px"><a href="logout.html?nonce={{nonce}}" target="_top" alt="Logout"><img id="cancelImage" src="img/cancel.png"/></a></div>
+			<div style="margin: 5px"><a href="logout.html?build=1409646769" target="_top" alt="Logout"><img id="cancelImage" src="img/cancel.png"/></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
   </body>  
   <script>
-  	if (global_desktop = ("{{desktop}}"=="true"))
+  	if (global_desktop)
   	{
 		// nothing to do here (should be always true)  		
   	}

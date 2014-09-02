@@ -4,12 +4,13 @@
   <head>
     <title>Gardenoid Schedules</title>
     <!-- not using abs. paths -> preview page on disc //-->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/gardenoid.js"></script>
-    <script src="js/conditionals.js"></script>    
-    <script src="js/schedules.js"></script>        
-    <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>         
-    <link rel="stylesheet" href="css/schedules.css" type="text/css" charset="utf-8"/>
+    <script src="js/global.js"></script>
+    <script src="js/jquery.min.js?build=1409646769"></script>
+    <script src="js/gardenoid.js?build=1409646769"></script>
+    <script src="js/conditionals.js?build=1409646769"></script>    
+    <script src="js/schedules.js?build=1409646769"></script>        
+    <link rel="stylesheet" href="css/gardenoid.css?build=1409646769" type="text/css" charset="utf-8"/>         
+    <link rel="stylesheet" href="css/schedules.css?build=1409646769" type="text/css" charset="utf-8"/>
   </head>  
   <body>		
 	<!-- header menu //-->
@@ -18,7 +19,7 @@
 			<div style="margin: 5px"><a href="javascript:do_add_schedule()"><img id="addImage" src="img/plus.png"/></a></div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a href="index.html?version={{version}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
+			<div style="margin: 5px"><a href="index.html?build=1409646769"><img id="cancelImage" src="img/cancel.png"/></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
@@ -108,7 +109,7 @@
 	  	<div id="idDialogHeader" class="dialog_header">
 	  		<div class="spread">
 				<div style="margin: 5px"><a href="javascript:check_and_convert(null);"><img id="statusImage" src="img/ok.png"/></a></div>
-				<div id="idTitle" class="dialog_title">{{action}}</div>
+				<div id="idTitle" class="dialog_title"> </div>
 				<div style="margin: 5px"><a href="javascript:do_cancel_dialog();"><img id="dialogCancelImage" src="img/cancel.png"/></a></div>
 			    <span class="stretch">&nbsp;</span>
 		   </div>
@@ -247,7 +248,7 @@
   	<div class="spacer" style="height:48px;"> </div>  	
   </body>  
   <script>
-  	if ((global_desktop = ("{{desktop}}"=="true")))
+  	if (global_desktop)
   	{
   		$("#status").hide();
   		$("#idFooter").hide();

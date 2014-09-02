@@ -2518,11 +2518,25 @@ public class GardenoidService extends Service
 	    if (template.equals("/js/conditionals.js"))
 	    {
 		String script = "var conditionals = " + Conditional.CONDITIONALS_JSON + ";";
-		String expires = createExpirationDate();
+		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
+		// conditinals.js now called with build=XXX therefore no explicit cache control necessary  
+//		String expires = createExpirationDate();
+//		r.addHeader("Cache-Control", "Public");
+//		r.addHeader("Expires", expires);
+		return r;
+	    }
+	    
+	    if (template.equals("/js/global.js"))
+	    {
+		String script = "";
+		script += "var global_desktop = " + (!cookie.isMobile()) + ";\n";
+		script += "var global_cookie  = " + cookie.getName()     + ";\n";
 
 		Response r = new Response(Status.OK, CT_JAVASCRIPT, script);
-		r.addHeader("Cache-Control", "Public");
-		r.addHeader("Expires", expires);
+		// prevent caching
+		r.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+		r.addHeader("Pragma", "no-cache");
+		r.addHeader("Expires", "0");
 		return r;
 	    }
 	    
@@ -2662,7 +2676,7 @@ public class GardenoidService extends Service
 	private String createExpirationDate()
 	{
 	    Calendar calendar = Calendar.getInstance();
-	    calendar.add(Calendar.MINUTE, 30);
+	    calendar.add(Calendar.DAY_OF_MONTH, 30);
 	    SimpleDateFormat dateFormat = new SimpleDateFormat(
 		    "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
 	    dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));

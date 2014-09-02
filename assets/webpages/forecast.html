@@ -4,12 +4,13 @@
   <head>
     <title>Gardenoid Forecast</title>
     <!-- not using abs. paths -> preview page on disc //-->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/gardenoid.js"></script>
-    <script src="js/conditionals.js"></script>    
-    <script src="js/forecast.js"></script>            
-    <link rel="stylesheet" href="css/gardenoid.css" type="text/css" charset="utf-8"/>         
-    <link rel="stylesheet" href="css/forecast.css"  type="text/css" charset="utf-8"/>             
+    <script src="js/global.js"></script>
+    <script src="js/jquery.min.js?build=1409646769"></script>
+    <script src="js/gardenoid.js?build=1409646769"></script>
+    <script src="js/conditionals.js?build=1409646769"></script>    
+    <script src="js/forecast.js?build=1409646769"></script>            
+    <link rel="stylesheet" href="css/gardenoid.css?build=1409646769" type="text/css" charset="utf-8"/>         
+    <link rel="stylesheet" href="css/forecast.css?build=1409646769"  type="text/css" charset="utf-8"/>             
   </head>  
   <body>		
 	<!-- header menu //-->
@@ -18,7 +19,7 @@
 			<div style="margin: 5px"> </div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a id="idLinkCancel" href="index.html?nonce={{nonce}}"><img id="cancelImage" src="img/cancel.png"/></a></div>
+			<div style="margin: 5px"><a id="idLinkCancel" href="index.html?build=1409646769"><img id="cancelImage" src="img/cancel.png"/></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>
@@ -47,7 +48,10 @@
   					<span id="idFuture" style="display:none"> </span>
   				</div>
   				<div><!-- <span id="idCode"> </span> //--><span id="idText">Sunny</span></div>  		  				
-  				<div><span id="idLow">10</span>&deg;{{unit_t}} / <span id="idHigh">15</span>&deg;{{unit_t}}</div>
+  				<div>
+  				  <span id="idLow" > </span>&deg;<span class="unitT">C</span> / 
+  				  <span id="idHigh"> </span>&deg;<span class="unitT">C</span>
+  				</div>
 			</div>
 		  	
 	  	</div>	  	
@@ -75,7 +79,7 @@
   	<div class="spacer" style="height:52px;" style="display:none"> </div>  	
   </body>  
   <script>
-  	if ((global_desktop = ("{{desktop}}"=="true")))
+  	if (global_desktop)
   	{
   		$("#status").hide();
   		$("#idFooter").hide();

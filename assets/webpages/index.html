@@ -4,28 +4,26 @@
   <head>
     <title>Gardenoid</title>    
     <!-- not using abs. paths -> preview page on disc //-->
-    <script src="js/jquery.min.js"></script>
-    <script src="js/gardenoid.js"></script>
+    <script src="js/global.js"></script>
+    <script src="js/jquery.min.js?build=1409646769"></script>
+    <script src="js/gardenoid.js?build=1409646769"></script>
     <!-- js generated (once) //-->
-    <script src="js/conditionals.js"></script>    
+    <script src="js/conditionals.js?build=1409646769"></script>    
     <!-- js generated (dynamic) //-->
-    <script src="js/strands.js?{{nonce}}"></script>    
+    <script src="js/strands.js?build=1409646769"></script>    
     <!-- order matters here. forecast.js will overwrite update_time() defined in gardenoid.js //-->        
-    <script src="js/countdown.js"></script>
-    <script>
-var global_cookie = "{{cookie}}";
-    </script>
-    <link rel="stylesheet" href="css/gardenoid.css?version={{version}}" type="text/css" charset="utf-8"/>
-    <link rel="stylesheet" href="css/countdown.css?version={{version}}" type="text/css" charset="utf-8"/>            
+    <script src="js/countdown.js?build=1409646769"></script>
+    <link rel="stylesheet" href="css/gardenoid.css?build=1409646769" type="text/css" charset="utf-8"/>
+    <link rel="stylesheet" href="css/countdown.css?build=1409646769" type="text/css" charset="utf-8"/>            
   </head>  
   <body>					
 	<!-- header menu //-->
   	<div id="status" class="status_unknown" style="display:none">
   		<div class="spread">
-			<div style="margin: 5px"><a href="forecast.html?nonce={{nonce}}"><img id="forecastImage" src="img/arrow.png" /></a></div>
+			<div style="margin: 5px"><a href="forecast.html?build=1409646769"><img id="forecastImage" src="img/arrow.png" /></a></div>
 			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
 			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
-			<div style="margin: 5px"><a href="schedules.html?nonce={{nonce}}"><img id="schedulesImage" src="img/calendar.png" /></a></div>
+			<div style="margin: 5px"><a href="schedules.html?build=1409646769"><img id="schedulesImage" src="img/calendar.png" /></a></div>
 		    <span class="stretch"> </span>
 	   </div>
 	</div>  	
@@ -167,7 +165,7 @@ var global_cookie = "{{cookie}}";
   	<div class="spacer" style="height:48px;" style="display:none"> </div>
   </body>  
   <script>
-  	if ((global_desktop = ("{{desktop}}"=="true")))
+  	if (global_desktop)
   	{
   		$("#status").hide();
   		$("#idFooter").hide();
