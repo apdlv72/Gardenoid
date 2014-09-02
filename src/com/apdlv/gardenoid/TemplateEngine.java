@@ -73,6 +73,23 @@ public class TemplateEngine
 	return is;
     }
 
+    public InputStream getFile(String fileName, boolean compress)
+    {
+	// TODO: always read compressed version and unzip on the fly if not supported since GZIP support is the default rather than the exception  
+	InputStream is = null;
+	try 
+	{
+	    if (fileName.startsWith("/")) fileName = fileName.substring(1);
+	    if (compress) fileName += ".gzip";
+	    is = findInputStream(fileName);
+	} 
+	catch (IOException e) 
+	{
+	    System.err.println("getFile: " + e);
+	} 
+	return is;
+    }
+
     /*
     public String getPage(String templateName)
     {

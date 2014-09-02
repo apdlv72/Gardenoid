@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
+  "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<html>
+  <head>
+    <title>Gardenoid</title>    
+    <!-- not using abs. paths -> preview page on disc //-->
+    <!-- TODO: check why with_conditionals here and remove if not necessary? //-->
+    <script src="js/global.js?with_strands&with_conditionals"></script>
+    <script src="js/jquery.min.js?build=1409651210"></script>
+    <script src="js/gardenoid.js?build=1409651210"></script>
+    <!-- js generated (once) //-->
+    <!-- <script src="js/conditionals.js?build=1409651210"></script> //-->    
+    <!-- js generated (dynamic) //-->
+    <!-- <script src="js/strands.js?build=1409651210"></script> //-->    
+    <!-- order matters here. forecast.js will overwrite update_time() defined in gardenoid.js //-->        
+    <script src="js/countdown.js?build=1409651210"></script>
+    <link rel="stylesheet" href="css/gardenoid.css?build=1409651210" type="text/css" charset="utf-8"/>
+    <link rel="stylesheet" href="css/countdown.css?build=1409651210" type="text/css" charset="utf-8"/>            
+  </head>  
+  <body>					
+	<!-- header menu //-->
+  	<div id="status" class="status_unknown" style="display:none">
+  		<div class="spread">
+			<div style="margin: 5px"><a href="forecast.html?build=1409651210"><img id="forecastImage" src="img/arrow.png" /></a></div>
+			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
+			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
+			<div style="margin: 5px"><a href="schedules.html?build=1409651210"><img id="schedulesImage" src="img/calendar.png" /></a></div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>  	
+	<!-- spacer //-->
+  	<div class="spacer" style="height:48px;" style="display:none"> </div>  	
+  	<!-- dialog (initially hidden) //-->
+	<div id="idDialog" class="countdown_dialog">  			
+	  	<div class="dialog_menu">
+	  		<div class="spread">
+				<div id="idLeftDialog" class="statusText" style="font-size: 18px; margin-left:1em; margin-top: 12px;">0</div>
+				<div>
+					<div id="idStrandName" onclick="edit_strand()" class="statusText" style="font-size: 18px; margin-top: 12px;">Strand</div>
+					<div id="idStrandNameEdit" style="font-size: 18px; margin-top: 12px; display:none;">
+						<form onsubmit="return edit_strand_save();">
+							<input id="idStrandNameInput" name="name"   type="text"   value="Strand name" size="10" style="font-size: 18px;">
+							<input type="image" src="/img/ok.png" height="20px">
+						</form>
+					</div>
+				</div>
+				<div style="margin: 5px"><a href="javascript:hide_dialog(); edit_strand_done();"><img src="img/cancel.png"/></a></div>
+			    <span class="stretch"> </span>
+		   </div>
+		</div>
+		<div id="idStop" class="stop" onclick="javascript:set_time(this);">STOP</div>
+		<div style="padding: 1em;">
+	  		<div class="spread">
+  				<div id="idTime5"    class="time" onclick="javascript:set_time(this);">5s</div>
+  				<div id="idTime10"   class="time" onclick="javascript:set_time(this);">10s</div>
+	  			<div id="idTime20"   class="time" onclick="javascript:set_time(this);">20s</div>
+	  			<div id="idTime30"   class="time" onclick="javascript:set_time(this);">30s</div>
+	  			<div id="idTime60"   class="time" onclick="javascript:set_time(this);">1m</div>
+	  			<div id="idTime300"  class="time" onclick="javascript:set_time(this);">5m</div>
+	  			<div id="idTime600"  class="time" onclick="javascript:set_time(this);">10m</div>
+	  			<div id="idTime1200" class="time" onclick="javascript:set_time(this);">20m</div>
+	  			<div id="idTime1800" class="time" onclick="javascript:set_time(this);">30m</div>
+	  			<div id="idTime3600" class="time" onclick="javascript:set_time(this);">1h</div>
+	  			<div id="idTime7200" class="time" onclick="javascript:set_time(this);">2h</div>
+			    <span class="stretch"></span>
+		    </div>
+	    </div>
+	</div>  		
+  	<!-- content //-->
+  	<div style="margin-top: .5em; margin-bottom: .5em;">
+  		
+  		<div class="center_spread">
+  		  <div style="text-align: center;">	
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(1)">
+	  			<div id="idActive1" class="countdown_indicator">
+	  				<span class="bigText" id="idLeft1"> </span>
+	  			</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle1"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(2)">
+	  			<div id="idActive2" class="countdown_indicator">
+	  				<span class="bigText" id="idLeft2"> </span>
+	  			</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle2"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(3)">
+	  			<div id="idActive3" class="countdown_indicator">
+	  				<span class="bigText" id="idLeft3"> </span>
+	  			</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle3"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(4)">
+		  		<div id="idActive4" class="countdown_indicator">
+		  			<span class="bigText" id="idLeft4"> </span>
+	  			</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle4"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(5)">
+	  			<div id="idActive5" class="countdown_indicator">
+	  				<span class="bigText" id="idLeft5"> </span>
+	  			</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle5"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(6)">
+	  			<div id="idActive6" class="countdown_indicator">
+	  				<span class="bigText" id="idLeft6"> </span>
+	  			</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle6"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(7)">
+  				<div id="idActive7" class="countdown_indicator">
+  					<span class="bigText" id="idLeft7"> </span>
+  				</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle7"> </span>
+		  		</div>
+	  		</div>
+	  		<div class="countdown_control" style="" onclick="javascript:show_dialog(8)">
+  		  		<div id="idActive8" class="countdown_indicator">
+  		  			<span class="bigText" id="idLeft8"> </span>
+  		  		</div>
+	  			<div class="strand_name">
+		  			<span class="bigText" id="idTitle8"> </span>
+		  		</div>
+	  		</div>			
+		</div>
+	  </div>
+  	</div>  	  	
+	<!-- footer menu //-->
+  	<div id="idFooter" class="menu" style="display:none">
+  		<div class="spread">
+			<div style="margin: 5px;"><a href="javascript:select_device();"><img src="img/discover.png"></a></div>
+			<div >
+				<div class="statusText" style="display: block; height:1em;">
+					Power:<span id="statusPower"> </span>
+				</div>
+				<div class="statusText" style="display: block;  height:1em;">
+					Version:<span id="statusVersion"> </span>
+				</div>
+			   <div class="statusText" style="display: block;  height:1em;">
+			   		<a href="/desktop.html" target="_top">[DESKTOP VERSION]</a>
+			   	</div>
+			</div>
+			<div style="margin: 5px">
+				<a href="javascript:show_api()"><img src="img/settings.png"/></a>
+			</div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+  	<!-- json errors //-->
+  	<div id="jsonErrorLog" class="jsonErrorLog">
+  	</div>
+  	<!-- spacer //-->
+  	<div class="spacer" style="height:48px;" style="display:none"> </div>
+  </body>  
+  <script>
+  	if (global_desktop)
+  	{
+  		$("#status").hide();
+  		$("#idFooter").hide();
+  		$(".spacer").hide();
+  	}
+  	else
+  	{
+  		$("#status").show();
+  		$("#idFooter").show();
+  		$(".spacer").show();
+	   	$(document).ready(update_status());
+	}
+  	$(document).ready(set_strand_names());
+   	window.setInterval(update_timers, 1000);		    		 	
+  </script>  
+</html>

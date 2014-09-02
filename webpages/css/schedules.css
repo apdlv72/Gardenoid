@@ -1,0 +1,143 @@
+.monthTable
+{
+    display: table; 
+    table-layout: fixed;    
+}
+
+/* selected: */
+.ux
+{ 
+    color: #808080;  
+}
+
+/* unselected: */
+.sx 
+{
+    color: #80ff80;  
+}
+
+.schedule
+{
+    background: #909090;
+    border-radius:    10px;
+    margin:            5px;
+    border: 2px outset #b0b0b0; 
+}
+
+.day
+{
+    text-align: center;
+    font-size: 18px !important; 
+} 
+
+.month
+{
+    text-align: center;
+    font-size: 18px !important; 
+}
+
+.strand 
+{
+    text-align: center;
+    font-size: 18px !important; 
+}
+
+.odd
+{
+    background: #b0b0b0;
+    border: 4px outset #d0d0d0;
+}
+
+.active
+{
+    background: #d0c0c0 !important;
+    border: 4px outset #fff0f0 !important;  
+}
+
+.power
+{
+    background: #FF8080 !important;
+    border: 4px outset #FFa0a0 !important;  
+}
+
+.dialog_header
+{
+    background: #aaaaff;
+    border-bottom: 1px solid #111a33;
+    -webkit-box-shadow: inset 0 1px 1px -1px #fff;
+    -webkit-box-sizing: border-box;
+    width: 100%;
+    font-family: Helvetica, sans-serif;
+    vertical-align: middle;
+}
+
+input[type=checkbox] 
+{
+  -ms-transform: scale(1.5); /* IE */
+  -moz-transform: scale(1.5); /* FF */
+  -webkit-transform: scale(1.5); /* Safari and Chrome */
+  -o-transform: scale(1.5); /* Opera */
+  margin-top: 10px;
+}
+
+.dialog_title
+{
+    font-size: 24px;
+    vertical-align: middle;
+    line-height: 42px;
+}
+
+.strand_list div 
+{
+    /*background-color: red;*/
+    width: 1ex;
+    text-align: center;
+    font-size: 18px;
+}
+
+.day_list div 
+{
+    /*background-color: red;*/
+    width: 3ex;
+    text-align: center;
+    font-size: 18px;
+}
+
+.month_list div
+{
+    /*background-color: red;*/
+    width: 3ex;
+    text-align: center; 
+    font-size: 18px;
+}
+
+.schedule_category
+{
+    background: -webkit-gradient(linear, center top, center bottom, from(#b0b0b0), to(#d0d0d0));
+    border-bottom: 1px solid #111a33;
+    -webkit-box-shadow: inset 0 1px 1px -1px #fff;
+    -webkit-box-sizing: border-box;
+    width: 100%;
+    font-family: Helvetica, sans-serif;
+    font-size: 14px;
+    -webkit-box-align: center;
+    padding:1em;
+    border-radius:    10px;
+    margin-top:5px;
+    margin-bottom:5px;
+}
+
+.category_title
+{
+    font-size: 18px;
+    text-align: center;
+    text-shadow: #ffffff 3px 3px 5px;
+    padding-bottom: 15px;
+    font-weight:bold; 
+}
+
+.fill_word
+{
+    width: 15em;    
+}
+

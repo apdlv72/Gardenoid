@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.2//EN"
+  "http://www.openmobilealliance.org/tech/DTD/xhtml-mobile12.dtd">
+<html>
+  <head>
+    <title>Gardenoid Desktop Version</title>
+    <!-- not using abs. paths -> preview page on disc //-->
+    <script src="js/jquery.min.js?build=1409651210"></script>
+    <script src="js/gardenoid.js?build=1409651210"></script>
+    <link rel="stylesheet" href="css/gardenoid.css?build=1409651210" type="text/css" charset="utf-8"/>
+    <script>
+function add_schedule()
+{
+	var schedulesFrame = parent.window.frames[2];
+	schedulesFrame.do_add_schedule();
+}
+    </script>         
+  </head>  
+  <body>		
+	<!-- header menu //-->
+  	<div id="status" class="status_unknown">
+  		<div class="spread">
+			<div style="margin: 5px"><a href="javascript:add_schedule()"><img id="addImage" src="img/plus.png"/></a></div>
+			<div id="statusPeerName" class="statusText" style="font-size: 16px;"> </div>
+			<div id="statusTime"     class="statusText" style="font-size: 16px;"> </div>
+			<div id="idLinkMobile"   class="statusText" style="font-size: 16px;"><a href="/mobile.html" target="_top">[MOBILE VERSION]</a></div>
+			<div style="margin: 5px"><a href="logout.html?build=1409651210" target="_top" alt="Logout"><img id="cancelImage" src="img/cancel.png"/></a></div>
+		    <span class="stretch"> </span>
+	   </div>
+	</div>
+  </body>  
+  <script>
+  	if (global_desktop)
+  	{
+		// nothing to do here (should be always true)  		
+  	}
+   	$(document).ready(update_status());
+   	window.setInterval(update_time, 1000);		    		 	
+  </script>  
+</html>
