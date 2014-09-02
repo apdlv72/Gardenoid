@@ -2344,10 +2344,10 @@ public class GardenoidService extends Service
 		    return new Redirect(location, cookie.getName(), "Login sucessful");
 		}
 		
-		Map<String, String> map = new HashMap<String, String>(1); 
-		map.put("version", mServiceVersion);
-		String page = mTemplateEngine.render(uri, map);
-		Response r = new Response(Status.OK, CT_TEXT_HTML, page);
+//		Map<String, String> map = new HashMap<String, String>(1); 
+//		map.put("version", mServiceVersion);
+		InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
+		Response r = new Response(Status.OK, CT_TEXT_HTML, is);
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
 	    }
@@ -2581,6 +2581,8 @@ public class GardenoidService extends Service
 		}
 	    }
 
+	    // editing of schedules now completely in the schedules.html page 
+	    /*
 	    if (template.equals("/schedules/edit.html"))
 	    {
 		System.out.println("serve: fetching session parms");
@@ -2614,6 +2616,7 @@ public class GardenoidService extends Service
 		System.out.println("serve: sending page");
 		return new Response(Status.OK, CT_TEXT_HTML, page);
 	    }
+	    */
 
 	    if ("/".equals(uri) || "".equals(uri)) 
 	    { 
@@ -2627,13 +2630,17 @@ public class GardenoidService extends Service
 	    map.put("version",      mServiceVersion);
 	    map.putAll(params);
 
-	    page = mTemplateEngine.render(uri, map);
+	    InputStream is = mTemplateEngine.getFile(uri);
+	    //page = mTemplateEngine.render(uri, map);
+	    is = mTemplateEngine.getFile(uri);
 	    if (null==page)
 	    {            
-		page = mTemplateEngine.render("index.html", map);
+		//page = mTemplateEngine.render("index.html", map);
+		is = mTemplateEngine.getFile("index.html");
 	    }
 
-	    if (null==page)
+	    //if (null==page)
+	    if (null==is)
 	    {
 		Response r = new Response(Status.NOT_FOUND, CT_TEXT_HTML, "Not found");
 		r.addHeader("Connection", "close");
@@ -2641,7 +2648,8 @@ public class GardenoidService extends Service
 	    }
 	    else
 	    {
-		Response r =  new Response(Status.OK, CT_TEXT_HTML, page);
+		//Response r =  new Response(Status.OK, CT_TEXT_HTML, page);
+		Response r =  new Response(Status.OK, CT_TEXT_HTML, is);
 		r.addHeader("Connection", "close");
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
@@ -2735,7 +2743,8 @@ public class GardenoidService extends Service
 	}
 
 
-	private boolean equals(String a, String b)
+	@SuppressWarnings("unused")
+        private boolean equals(String a, String b)
 	{
 	    return null!=a && a.equals(b);
 	}
