@@ -22,6 +22,7 @@
     </item>
     <item
         android:id="@+id/menuSetPassword"
+        android:icon="@android:drawable/ic_secure"
         android:title="Set password" android:titleCondensed="Password">
     </item>
     
