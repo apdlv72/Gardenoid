@@ -1,9 +1,14 @@
 package com.apdlv.gardenoid;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.zip.Deflater;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import android.content.res.AssetManager;
 
@@ -76,15 +81,50 @@ public class TemplateEngine
 	    
 	    if (null!=is && !gzipAccepted)
 	    {
-		// uncompress on the fly of the client does not support compression
-		is = new GZIPInputStream(is);
+		// Uncompress on the fly of the client does not support compression
+		// Note: cannot just return a GZIPInputStream here bacause NanoHTTPD will fail
+		// since it cannot determine the ContentLength because GZIPInputStream.available
+		// always returns 1.
+		is = gunzip(is);
+		System.err.println("UNZIPPING ON THE FLY: " + fileName);
 	    }
+	    
+	    if (null!=is) System.out.println("getFile: is.available=" + is.available());
 	} 
 	catch (IOException e) 
 	{
 	    System.err.println("getFile: " + e);
 	} 
 	return is;
+    }
+
+    private ByteArrayInputStream gunzip(InputStream is) throws IOException
+    {
+	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	GZIPInputStream       gzip = null;	
+	try
+	{
+	    gzip = new GZIPInputStream(is);
+	    
+	    byte b[] = new byte[1024];
+
+	    do 
+	    {
+		int n = gzip.read(b, 0, b.length);
+		baos.write(b, 0, n);
+	    }
+	    while (gzip.available()>0);
+	}
+	catch (Exception e)
+	{
+	    System.err.println("uncompress: " + e);
+	}
+	if (null!=gzip) gzip.close();
+	if (null!=is)   is.close();
+	
+	ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+	baos.close();
+	return bais;
     }
 
     /*
@@ -134,8 +174,13 @@ public class TemplateEngine
 //	    }
 //	    else
 //	    {	
-//		System.out.println("findInputStream: NOT found on external storage: " + file);
-		is = mAssetManager.open(DIR_PREFIX_WEBPAGES + "/" + name);
+//		System.out.println("findInputStream: NOT found on external storage: " + file); 
+	    	String path =  DIR_PREFIX_WEBPAGES + (name.startsWith("/") ? "" : "/") + name;
+		is = mAssetManager.open(path);
+		if (null==is)
+		{
+		    System.err.println("findInputStream: NOT FOUND: " + path);
+		}
 //	    }
 	}
 	catch (Exception e)
@@ -195,4 +240,24 @@ public class TemplateEngine
 
     private AssetManager mAssetManager;
     //private File         mExternalDir;
+
+    public static InputStream compress(String uri, String data) throws IOException
+    {
+	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	GZIPOutputStream gzip = new GZIPOutputStream(baos, 16384){{def.setLevel(Deflater.BEST_COMPRESSION);}};	
+	//GZIPOutputStream      gzip = new GZIPOutputStream(baos); 
+	byte[] bytes = data.getBytes();
+	gzip.write(bytes);	
+	gzip.close();
+	baos.close();
+	
+	byte[] compr = baos.toByteArray();
+
+	int in  = data.length();
+	int raw = bytes.length;
+	int out = compr.length;	
+	System.out.println("compress " + uri + ": IN=" + in + " bytes, RAW=" + raw + ", OUT=" + out + " bytes");
+
+	return new ByteArrayInputStream(compr);
+    }
 }

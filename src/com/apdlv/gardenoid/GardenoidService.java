@@ -2,6 +2,7 @@ package com.apdlv.gardenoid;
 
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -124,7 +125,7 @@ public class GardenoidService extends Service
 
     public GardenoidService() 
     {
-	System.out.println("GardenoidService");
+	//System.out.println("GardenoidService");
 	mPairedDevices    = new HashSet<BluetoothDevice>();
 	mVisibleDevices   = new HashSet<BluetoothDevice>();
 	mVisibleDevicesDiscovering =  new HashSet<BluetoothDevice>();
@@ -346,16 +347,16 @@ public class GardenoidService extends Service
 		    long millis = (Calendar.getInstance().getTimeInMillis()%1000);
 		    long sleeptime = 1000-millis;
 		    try { Thread.sleep(sleeptime); } catch (InterruptedException e) {}
-		    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: calling updateMask");
+		    //if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: calling updateMask");
 		    boolean rc = updateMask();
-		    if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: updateMask returned " + rc);
+		    //if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: updateMask returned " + rc);
 		}
 	    }
 	    catch (Exception e)
 	    {
 		System.err.println("oneTimeSchedules: " + e);
 	    }
-	    System.err.println("oneTimeSchedules: *************  at end of run() ************* ");
+	    //System.err.println("oneTimeSchedules: *************  at end of run() ************* ");
 	};
 
 	public OneTimeContainer addTime(int no, int secs)
@@ -363,7 +364,7 @@ public class GardenoidService extends Service
 	    synchronized (this)
 	    {	            
 		oneTimeSchedules[no-1].addTimeX(secs);
-		if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: addTime(" + no + "," + secs + ")");
+		//if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: addTime(" + no + "," + secs + ")");
 		updateMask();
 		updateChangeTime(); // for sure - something changed. updateMask() will do it only if mask changed
 		return this;
@@ -375,7 +376,7 @@ public class GardenoidService extends Service
 	    synchronized (this)
 	    {	            
 		oneTimeSchedules[no-1].setTimeX(secs);
-		if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: setTime(" + no + "," + secs + ")");
+		//if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: setTime(" + no + "," + secs + ")");
 		updateMask();
 		updateChangeTime();
 		return this;
@@ -399,7 +400,7 @@ public class GardenoidService extends Service
 
 		if ((notify = (oldMask!=newMask)))        	
 		{
-		    System.out.println("oneTimeSchedules: mask changed " + oldMask  + " -> " + newMask + ", this=" + this);
+		    //System.out.println("oneTimeSchedules: mask changed " + oldMask  + " -> " + newMask + ", this=" + this);
 		    updateChangeTime();
 		}
 		mMask = newMask;
@@ -446,7 +447,7 @@ public class GardenoidService extends Service
 	    synchronized(this)
 	    {
 		oneTimeSchedules[no-1].stopX();
-		if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: stop(" + no + ")");
+		//if (DEBUG_ONETIME_CONTAINER) System.out.println("oneTimeSchedules: stop(" + no + ")");
 		updateMask();
 		return this;
 	    }
@@ -544,7 +545,7 @@ public class GardenoidService extends Service
 
 	if (delta>500)
 	{
-	    if (DEBUG_ONETIME_CONTAINER) System.out.println("sendEffectiveMaskToControllerAndActivity took " + delta + " ms");
+	    //if (DEBUG_ONETIME_CONTAINER) System.out.println("sendEffectiveMaskToControllerAndActivity took " + delta + " ms");
 	}	
     }
 
@@ -706,7 +707,7 @@ public class GardenoidService extends Service
 	    String address = null==p ? null : p.getString(PREFKEY_BT_DEVICE_ADDR, null);
 	    System.err.println("address: " + address);
 
-	    System.out.println(PREFKEY_BT_DEVICE_ADDR + ": " + address);	    
+	    //System.out.println(PREFKEY_BT_DEVICE_ADDR + ": " + address);	    
 	    BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 	    if (null!=address)
 	    {	    
@@ -867,10 +868,10 @@ public class GardenoidService extends Service
 		}
 
 		int affectedRows = mDao.setSchedulePower(on);
-		System.out.println("checkSchedules: Updated strand status: affectedRows=" + affectedRows);
+		//System.out.println("checkSchedules: Updated strand status: affectedRows=" + affectedRows);
 
 		mActiveStrandsMask = newMask;
-		System.out.println("checkSchedules: mActiveStrandsMask=" + mActiveStrandsMask);
+		//System.out.println("checkSchedules: mActiveStrandsMask=" + mActiveStrandsMask);
 
 		CommandQueue.Command cmd = null;
 
@@ -918,15 +919,15 @@ public class GardenoidService extends Service
 
         private void onScheduleChange(List<Schedule> on, int newMask)
         {
-	    System.out.println("checkSchedules: Schedules status changed: " + mPoweredOnSchedules);
+	    //System.out.println("checkSchedules: Schedules status changed: " + mPoweredOnSchedules);
 
 	    if (mActiveStrandsMask!=newMask)
 	    {
-		System.out.println("checkSchedules: Strand status changed: mask=" + newMask);			
+		//System.out.println("checkSchedules: Strand status changed: mask=" + newMask);			
 	    }
 	    else
 	    {
-		System.out.println("checkSchedules: Strand status remains the same: mask=" + newMask);
+		//System.out.println("checkSchedules: Strand status remains the same: mask=" + newMask);
 	    }
 
 	    StringBuilder sb = new StringBuilder();
@@ -1023,7 +1024,7 @@ public class GardenoidService extends Service
 	mBtAdapter = BluetoothAdapter.getDefaultAdapter();
 
 	// Get a set of currently paired devices
-	mPairedDevices = mBtAdapter.getBondedDevices();
+	mPairedDevices = (null==mBtAdapter) ? new HashSet<BluetoothDevice>() : mBtAdapter.getBondedDevices();
     }
 
 
@@ -1569,7 +1570,7 @@ public class GardenoidService extends Service
 		    keysToRemove.add(key);
 		}
 	    }
-	    System.out.println("cleanupExpired: removing " + keysToRemove.size() + " commands");
+	    //System.out.println("cleanupExpired: removing " + keysToRemove.size() + " commands");
 	    for (String key : keysToRemove)
 	    {
 		map.remove(key);
@@ -1724,6 +1725,37 @@ public class GardenoidService extends Service
 	    }
 	};
 	
+	public class JsonResponse extends Response
+	{
+	    public JsonResponse(String body)
+	    {
+		this(Status.OK, body);
+	    }
+	    
+	    public JsonResponse(Status status, String body)
+	    {
+		super(status, CT_TEXT_JSON, body);
+		addHeader("Pragma", "no-cache");
+	    }
+
+	    public JsonResponse(Status ok, InputStream is)
+            {
+		super(Status.OK, CT_TEXT_JSON, is);
+            }	    
+	};
+
+	public class GzipResponse extends Response
+	{
+	    public GzipResponse(Status status, String ct, String cookie, InputStream is, boolean gzipAccepted)
+	    {
+		super(status, ct, is);
+		addHeader("Set-Cookie", cookie);	
+		if (gzipAccepted)
+		{
+		    addHeader("Content-Encoding", "gzip");
+		}
+	    }
+	};
 
 	public MyHTTPD(int port) 
 	{
@@ -1744,14 +1776,15 @@ public class GardenoidService extends Service
 	    return null;
 	}
 
-	private Response createRestResponse(String resource, Map<String, String> params) throws ParseException, JSONException, IOException	
+	private Response createRestResponse(String resource, Map<String, String> params, boolean gzipAccepted) throws ParseException, JSONException, IOException	
 	{
-	    StringBuilder msg      = new StringBuilder();	
+	    StringBuilder body = new StringBuilder();
+	    Response      resp = null;
 
 	    if (resource.startsWith("/devices/list"))
 	    {		 
 		Set<BluetoothDevice> pairedDevices = mBtAdapter.getBondedDevices();
-		listDevices(pairedDevices, mVisibleDevices, msg);
+		listDevices(pairedDevices, mVisibleDevices, body);
 	    }
 	    else if (resource.startsWith("/strand/rename"))
 	    {
@@ -1764,82 +1797,64 @@ public class GardenoidService extends Service
 		
 		// send time of last config update so the instance that caused this change
 		// may update this information in order not to force a relaod 
-		msg.append(new JSONObject().put("no", no).put("name", name).put("reconfig", mDao.getLastReconfigId()).toString());
+		body.append(U.toJson("no", no, "name", name, "reconfig", mDao.getLastReconfigId()));
 	    }
 	    else if (resource.startsWith("/weather/compact"))
 	    {
-		try
-		{
-		    if ("yes".equals(params.get("confirm")))
-		    { 
-			System.out.println("Fetching all weather conditions from database");			
-			List<Weather> list = mDao.getAllWeathers(); 
-			System.out.println("Fetched " + (null==list ? 0 : list.size()) + " weather conditions from database");
+		if ("yes".equals(params.get("confirm")))
+		{ 
+		    //System.out.println("Fetching all weather conditions from database");			
+		    List<Weather> list = mDao.getAllWeathers(); 
+		    //System.out.println("Fetched " + (null==list ? 0 : list.size()) + " weather conditions from database");
 
-			List<Long> ids = new ArrayList<Long>();
+		    List<Long> ids = new ArrayList<Long>();
 
-			Weather last = null;
-			if (null!=list) for (Weather w : list)
-			{
-			    Calendar prev = (null==last) ? null : last.getDate();
-			    Calendar curr = w.getDate();
+		    Weather last = null;
+		    if (null!=list) for (Weather w : list)
+		    {
+			Calendar prev = (null==last) ? null : last.getDate();
+			Calendar curr = w.getDate();
 
-			    if (last!=null && DAO.sameDay(prev, curr))
-			    {				    
-				long delta = (curr.getTimeInMillis()-prev.getTimeInMillis())/1000; // seconds
-				if (delta<6*60*60) // less than 6 hours between two entries?
-				{
-				    ids.add(w.getId()); // yes? mark id to be deleted
-				    System.out.println("Delete: " + w);
-				}
-				else
-				{
-				    System.out.println("Keep: " + w);
-				    last = w; // keep entry 
-				}
-			    }	
+			if (last!=null && DAO.sameDay(prev, curr))
+			{				    
+			    long delta = (curr.getTimeInMillis()-prev.getTimeInMillis())/1000; // seconds
+			    if (delta<6*60*60) // less than 6 hours between two entries?
+			    {
+				ids.add(w.getId()); // yes? mark id to be deleted
+				//System.out.println("Delete: " + w);
+			    }
 			    else
 			    {
-				last = w;
+				//System.out.println("Keep: " + w);
+				last = w; // keep entry 
 			    }
+			}	
+			else
+			{
+			    last = w;
 			}
-			System.out.println("Deleting " + ids.size() + " weather conditions from database");
-			int rows = mDao.deleteWeather(ids);
+		    }
+		    //System.out.println("Deleting " + ids.size() + " weather conditions from database");
+		    int rows = mDao.deleteWeather(ids);
 
-			String json = new JSONObject().put("success", true).put("rows", rows).toString();
-			msg.append(json);		    
-		    }
-		    else
-		    {
-			String json = new JSONObject().put("success", false).put("reason", "no confirmation").toString();
-			msg.append(json);		    
-		    }
+		    body.append(U.toJson("success", true, "rows", rows));
 		}
-		catch (JSONException e)
+		else
 		{
-		    msg.append(e);
+		    body.append(U.toJson("success", false, "reason", "no confirmation"));		    
 		}
 	    }
 	    else if (resource.startsWith("/events/purge"))
 	    {		 
-		try
+		if ("yes".equals(params.get("confirm")))
 		{
-		    if ("yes".equals(params.get("confirm")))
-		    {
-			int rows = mDao.purgeEvents();
-			mDao.addEvent(new Event("Purged"));
-			String json = new JSONObject().put("success", true).put("rows", rows).toString();
-			msg.append(json);
-		    }
-		    else
-		    {
-			String json = new JSONObject().put("success", false).put("reason", "no confirmation").toString();
-			msg.append(json);        	    
-		    }
+		    int rows = mDao.purgeEvents();
+		    mDao.addEvent(new Event("Purged"));
+		    body.append(U.toJson("success", true, "rows", rows));
 		}
-		catch (JSONException e)
+		else
 		{
-		    msg.append(e);
+		    body.append(U.toJson("success", false, "reason", "no confirmation"));        	    
 		}
 	    }
 	    else if (resource.startsWith("/events/list"))
@@ -1847,36 +1862,36 @@ public class GardenoidService extends Service
 		long maxAgeSeconds = 30*24*60*60; // one month
 		List<Event> events = mDao.getAllEvents(maxAgeSeconds);
 
-		msg.append("{ \"success\":").append(events!=null).append(",\"events\":[\n");		
+		body.append("{ \"success\":").append(events!=null).append(",\"events\":[\n");		
 		if (null!=events)
 		{
 		    boolean first = true;
 		    for (Event e : events)
 		    {			
 			String json = e.toJson();
-			msg.append(first?"":",\n").append(json);
+			body.append(first?"":",\n").append(json);
 			first = false;
 		    }
 		}
-		msg.append("]}"); 
-		Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
-		r.addHeader("Refresh", "10"); // auto update every 10s
-		return r;
+		body.append("]}"); 
+		//resp = new Response(Status.OK, CT_TEXT_JSON, body.toString());
+		//resp.addHeader("Refresh", "10"); // auto update every 10s
+		//return r;
 	    }
 	    else if (resource.startsWith("/discover/start"))
 	    {		 
 		startDiscovery();
-		msg.append("{ \"success\" : true }");
+		body.append("{ \"success\" : true, \"discovering\" : " + true + " }");
 	    }
 	    else if (resource.startsWith("/discover/cancel"))
 	    {		 
 		cancelDiscovery();
-		msg.append("{ \"success\" : true }");
+		body.append("{ \"success\" : true, \"discovering\" : " + false + " }");
 	    }
 	    else if (resource.startsWith("/discover/toggle"))
 	    {		 
 		boolean discovering = toggleDiscovery();
-		msg.append("{ \"success\" : true, \"discovering\" : " + discovering + " }");
+		body.append("{ \"success\" : true, \"discovering\" : " + discovering + " }");
 	    }
 	    else if (resource.startsWith("/device/select"))
 	    {		 
@@ -1884,7 +1899,7 @@ public class GardenoidService extends Service
 		BluetoothDevice device = findDevice(address);
 		if (null==device)
 		{
-		    msg.append("{ \"success\" : false, \"error\" : \"Unknown device\" }");
+		    body.append("{ \"success\" : false, \"error\" : \"Unknown device\" }");
 		}
 		else
 		{
@@ -1902,50 +1917,45 @@ public class GardenoidService extends Service
 		    boolean success = mConnectThread.connectTo(device);
 		    mDao.addEvent(new Event("connectTo", "name", device.getName(), "addr", device.getAddress()));
 		    String error = success ? "none" : "Timeout";
-		    msg.append("{ \"success\" : ").append(success).append(", \"error\": \"").append(error).append("\" }");
+		    body.append("{ \"success\" : ").append(success).append(", \"error\": \"").append(error).append("\" }");
 		}
-
-		Response r = new Response(NanoHTTPD_SSL.Response.Status.OK, CT_TEXT_JSON, msg.toString());
-		return r;
 	    }
 	    else if (resource.startsWith("/connection/stop"))
 	    {		 
 		boolean success = mConnectThread.disconnect();
-		msg.append("{ \"success\" : " + success + " }");
+		body.append("{ \"success\" : " + success + " }");
 	    }
 	    else if (resource.startsWith("/onetime/list"))
 	    {
 		long nowUnixtime = DAO.nowUnixtime();
 		long mask = mOneTimeContainer.getMask();
-		msg
-		.append("{")
-		.append( " \"now\": ").append(nowUnixtime)
-		.append(", \"mask\": ").append(mask)
-		.append(", \"onetime\": ").append(mOneTimeContainer.toJson(nowUnixtime))
-		.append("}");
-		@SuppressWarnings("unused")
-		String dbg = msg.toString(); 
+		body
+    		.append("{")
+    		.append( " \"now\": ").append(nowUnixtime)
+    		.append(", \"mask\": ").append(mask)
+    		.append(", \"onetime\": ").append(mOneTimeContainer.toJson(nowUnixtime))
+    		.append("}");
 	    }
 	    else if (resource.startsWith("/onetime/add"))
 	    {
 		int no   = U.toInt(params.get("no"));
 		int secs = U.toInt(params.get("secs"));
-		return new Response(Status.OK, CT_TEXT_JSON, mOneTimeContainer.addTime(no, secs).toJson(no));
+		body.append(mOneTimeContainer.addTime(no, secs).toJson(no));
 	    }
 	    else if (resource.startsWith("/onetime/set"))
 	    {
 		int no   = U.toInt(params.get("no"));
 		int secs = U.toInt(params.get("secs"));
-		return new Response(Status.OK, CT_TEXT_JSON, mOneTimeContainer.setTime(no, secs).toJson(no));
+		body.append(mOneTimeContainer.setTime(no, secs).toJson(no));
 	    }
 	    else if (resource.startsWith("/onetime/stop"))
 	    {
-		int no   = U.toInt(params.get("no"));
-		return new Response(Status.OK, CT_TEXT_JSON, mOneTimeContainer.stop(no).toJson(no));        		
+		int no = U.toInt(params.get("no"));
+		body.append(mOneTimeContainer.stop(no).toJson(no));        		
 	    }
 	    else if (resource.startsWith("/schedules/list") || resource.startsWith("/schedules/active"))
 	    {   
-		System.out.println("/schedules/list: params=" + params);
+		//System.out.println("/schedules/list: params=" + params);
 		String newFingerprint;
 		String oldFingerprint = params.get("fingerprint");
 
@@ -1977,16 +1987,16 @@ public class GardenoidService extends Service
 		}
 
 		boolean first = true;
-		msg.append(
+		body.append(
 			"{ \"schedules\" :\n" +
 			"  [\n");
 		for (Schedule s : all)
 		{
-		    if (!first) msg.append(",\n");
+		    if (!first) body.append(",\n");
 		    first = false;        	    
-		    msg.append(s.toJson());        	    
+		    body.append(s.toJson());        	    
 		}        	
-		msg.append(
+		body.append(
 			"\n" +
 				"  ],\n" +
 				" \"fingerprint\" : \"" + newFingerprint + "\"\n" +
@@ -1997,9 +2007,9 @@ public class GardenoidService extends Service
 		int id = U.toInt(params.get("id"));        	
 		Schedule s = mDao.getSchedule(id);
 
-		msg.append("{ \"schedule\" :\n");
-		msg.append(s.toJson());    
-		msg.append("\n}");        	
+		body.append("{ \"schedule\" :\n");
+		body.append(s.toJson());    
+		body.append("\n}");        	
 	    }
 	    else if (resource.startsWith("/schedules/modify"))
 	    {
@@ -2011,7 +2021,7 @@ public class GardenoidService extends Service
 		    {
 			id = U.toLong(params.get("id"));
 			int rows = mDao.deleteSchedule(id);
-			msg.append("{ \"success\" : true, \"id\" : ").append(id).append(", \"op\" : \"delete\" }");
+			body.append("{ \"success\" : true, \"id\" : ").append(id).append(", \"op\" : \"delete\" }");
 
 			mDao.addEvent(new Event(mActiveStrandsMask, "deleteSchedule", "id", id, "rows",rows));
 		    }
@@ -2041,7 +2051,7 @@ public class GardenoidService extends Service
 			if (action.equals("add"))
 			{
 			    id = mDao.addSchedule(schedule);
-			    msg.append("{ \"success\" : true, \"id\" : ")
+			    body.append("{ \"success\" : true, \"id\" : ")
 			    .append(id)
 			    .append(", \"op\" : \"insert\" }");
 			    mDao.addEvent(new Event(mActiveStrandsMask, "addSchedule", schedule.toJson()));
@@ -2051,7 +2061,7 @@ public class GardenoidService extends Service
 			    id = U.toLong(params.get("id"));
 			    schedule.setId(id);
 			    mDao.updateSchedule(schedule);
-			    msg.append("{ \"success\" : true, \"id\" : ")
+			    body.append("{ \"success\" : true, \"id\" : ")
 			    .append(id)
 			    .append(", \"op\" : \"update\" }");
 			    mDao.addEvent(new Event(mActiveStrandsMask, "updateSchedule", schedule.toJson()));
@@ -2066,14 +2076,12 @@ public class GardenoidService extends Service
 		    mDao.logException(e);
 		    String err  = ("" + e).replaceAll("\"",  "'");
 		    String json = "{ \"success\" : false, \"id\" : " + id + ", \"error\" : \"" + err + "\" }";
-		    Response r = new Response(Status.INTERNAL_ERROR, CT_TEXT_JSON, json);
-		    r.addHeader("Pragma", "no-cache");
-		    return r;
+		    resp = new JsonResponse(Status.INTERNAL_ERROR, json);
 		}
 	    }
 	    else if (resource.startsWith("/db/stats"))
 	    {
-		msg.append(mDao.getStats());		
+		body.append(mDao.getStats());		
 	    }
 	    else if (resource.startsWith("/status"))
 	    {
@@ -2102,36 +2110,33 @@ public class GardenoidService extends Service
 		if (DEBUG_ONETIME_CONTAINER) System.err.println("oneTimeSchedules: onetimeMask=" + onetimeMask + ", mOneTimeContainer=" + mOneTimeContainer);
 		Calendar now = U.now();
 		long nowUnixtime = DAO.datetimeToUnixtime(now);
-		msg.append("{ \"changed\": ").append(changed);
+		body.append("{ \"changed\": ").append(changed);
 		// version will let HTML frontend detect when to reload the whole page because of reinstall:
 		// adding last strand update time to make page reload when strand names were changed
-		msg.append(", \"version\":\"").append(mServiceVersion).append("\"");  
-		msg.append(", \"reconfig\":\"").append(mDao.getLastReconfigId()).append("\"");  
-		msg.append(", \"discovering\":").append(isDiscovering());
-		msg.append(", \"connected\":").append(isConnected());
-		msg.append(", \"peer\":").append(U.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
-		msg.append(", \"now\":\"").append(U.toYYYYMMDD_hhmmss(now)).append("\"");
-		msg.append(", \"unixtime\":").append(nowUnixtime);
-		msg.append(", \"fingerprint\":").append(U.nullOrEscapedInDoubleQuotes(newFingerprint));
-		msg.append(", \"power\":").append(mActiveStrandsMask|onetimeMask);
-		msg.append(", \"scheduled\":").append(mActiveStrandsMask);
-		msg.append(", \"onetime\":").append(onetimeMask);
-		msg.append(", \"onetimeList\":").append(mOneTimeContainer.toJson(nowUnixtime));
-		msg.append("}\n");
+		body.append(", \"version\":\"").append(mServiceVersion).append("\"");  
+		body.append(", \"reconfig\":\"").append(mDao.getLastReconfigId()).append("\"");  
+		body.append(", \"discovering\":").append(isDiscovering());
+		body.append(", \"connected\":").append(isConnected());
+		body.append(", \"peer\":").append(U.nullOrEscapedInDoubleQuotes(getCurrentPeer()));
+		body.append(", \"now\":\"").append(U.toYYYYMMDD_hhmmss(now)).append("\"");
+		body.append(", \"unixtime\":").append(nowUnixtime);
+		body.append(", \"fingerprint\":").append(U.nullOrEscapedInDoubleQuotes(newFingerprint));
+		body.append(", \"power\":").append(mActiveStrandsMask|onetimeMask);
+		body.append(", \"scheduled\":").append(mActiveStrandsMask);
+		body.append(", \"onetime\":").append(onetimeMask);
+		body.append(", \"onetimeList\":").append(mOneTimeContainer.toJson(nowUnixtime));
+		body.append("}\n");
 
-		Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
-		r.addHeader("Pragma", "no-cache");
 		if (DEBUG_ONETIME_CONTAINER)
 		{
 		    System.err.println("********* SENDING STATUS *********: ");
 		    System.err.println("old status: " + params);
-		    System.err.println("new status: " + msg.toString());
+		    System.err.println("new status: " + body.toString());
 		}
-		return r;
 	    }
 	    else if (resource.startsWith("/queue/list"))
 	    {
-		msg.append(mCmdQueue.toJson());
+		body.append(mCmdQueue.toJson());
 	    }
 	    else if (resource.startsWith("/command"))
 	    {
@@ -2139,12 +2144,12 @@ public class GardenoidService extends Service
 		CommandQueue.Command cmd = mCmdQueue.send(name, true /* do wait */);
 		if (!cmd.ready)
 		{
-		    msg.append("{ error : \"timeout\" }");
+		    body.append("{ error : \"timeout\" }");
 		}
 		else 
 		{
-		    msg.append(cmd.success);
-		    msg.append(cmd.error);
+		    body.append(cmd.success);
+		    body.append(cmd.error);
 		}
 	    }
 	    else if (resource.startsWith("/weather/list"))
@@ -2164,7 +2169,7 @@ public class GardenoidService extends Service
 		//		params.put("day", day);
 
 		List<Weather> list = (null==day) ? mDao.getAllWeathers() : mDao.getAllWeathers(day);
-		StringBuilder sb   = new StringBuilder();
+		StringBuilder sb   = body;
 		sb.append("{ \"weather\" :\n[\n");
 		boolean first = true;
 		if (null!=list) for (Weather w : list)
@@ -2176,14 +2181,11 @@ public class GardenoidService extends Service
 		sb.append("\n], \n");
 		sb.append("\"day\" : ").append(U.escapedOrNull(day));
 		sb.append("}");
-		Response r = new Response(Status.OK, CT_TEXT_JSON, sb.toString());
-		r.addHeader("Pragma", "no-cache");
-		return r;
 	    }
 	    else if (resource.startsWith("/forecast/list"))
 	    {
 		List<com.apdlv.gardenoid.db.Forecast> list = mDao.getAllForecasts();
-		StringBuilder sb = new StringBuilder();
+		StringBuilder sb = body;
 		sb.append("{ \"forecasts\" :\n[\n");
 		Calendar today = DAO.todayNoon();
 		boolean first = true;
@@ -2194,9 +2196,6 @@ public class GardenoidService extends Service
 		    first = false;
 		}
 		sb.append("\n]\n}");
-		Response r = new Response(Status.OK, CT_TEXT_JSON, sb.toString());
-		r.addHeader("Pragma", "no-cache");
-		return r;
 	    }
 	    else if (resource.startsWith("/forecast/get"))
 	    {
@@ -2209,7 +2208,7 @@ public class GardenoidService extends Service
 		    if (null==tempUnit)  tempUnit  = TEMP_UNIT_CELSIUS;
 
 		    WeatherConditions cond = mForecastProvider.getForecast(placeCode, tempUnit);	            
-		    StringBuilder  sb = new StringBuilder();	            
+		    StringBuilder sb = body;	            
 		    sb.append("{\n  ");
 		    dump("astronomy",  cond.getAstronomy(),  sb); sb.append(",\n  ");
 		    dump("atmosphere", cond.getAtmosphere(), sb); sb.append(",\n  ");
@@ -2236,41 +2235,36 @@ public class GardenoidService extends Service
 		    }
 		    sb.append("\n  ]");	            
 		    sb.append("\n}");	            
-
-		    Response r = new Response(Status.OK, CT_TEXT_JSON, sb.toString());
-		    r.addHeader("Pragma", "no-cache");
-		    return r;
 		} 
 		catch (Exception e)
 		{
 		    mDao.logException(e);
-		    Response r = new Response(Status.INTERNAL_ERROR, CT_TEXT_JSON, "{ \"success\" : false, exception: \"" + e + "\" }");
-		    r.addHeader("Pragma", "no-cache");
-		    e.printStackTrace();
-		    return r;
+		    body.append(U.toJson("success", false, "exception", ""+e));
+		    resp = new JsonResponse(Status.INTERNAL_ERROR, body.toString());
 		}        	
 	    }
 	    else
 	    {
-		Response r = new Response(Status.NOT_FOUND, CT_TEXT_PLAIN, "Resource '" + resource + "' does not exist");
-		r.addHeader("Pragma", "no-cache");
-		return r;    	    
+		resp = new JsonResponse(Status.NOT_FOUND, U.toJson("success", false, "reason", "Resource '" + resource + "' does not exist"));
 	    }
 
-	    String content = msg.toString();
-	    if (content.length()>1024)
+	    if (null==resp)		
 	    {
-		// TODO: add compression here
-		InputStream is = new GZIPInputStream(new ByteArrayInputStream(content.getBytes()));
-		    Response r = new Response(Status.OK, CT_TEXT_JSON, is);
-		    r.addHeader("Pragma", "no-cache"); //System.out.println("SENDING: " + msg);
-		    r.addHeader("Content-Encoding", "no-cache"); //System.out.println("SENDING: " + msg);
-		    return r;
+		resp = new JsonResponse(body.toString());
 	    }
 	    
-	    Response r = new Response(Status.OK, CT_TEXT_JSON, msg.toString());
-	    r.addHeader("Pragma", "no-cache"); //System.out.println("SENDING: " + msg);
-	    return r;
+	    String content = body.toString();
+	    if (gzipAccepted && content.length()>1024)
+	    {
+		// TODO: add compression here
+		InputStream is = TemplateEngine.compress(resource, content); //new GZIPInputStream(new ByteArrayInputStream(content.getBytes()));
+		resp = new JsonResponse(Status.OK, is);
+		resp.addHeader("Content-Encoding", "gzip");
+	    }
+	    
+	    resp = new Response(Status.OK, CT_TEXT_JSON, content);
+	    resp.addHeader("Pragma", "no-cache"); 
+	    return resp;
 	}
 
 //	private String adjustDay(String day, int i) throws ParseException
@@ -2340,13 +2334,13 @@ public class GardenoidService extends Service
 
 	    String ae = headers.get("accept-encoding");
 	    boolean gzipAccepted   = (null!=ae && ae.contains("gzip"));
-	    boolean isLocalRequest = remoteAddr.startsWith("127.0.0.1");
-	    
+	    boolean isLocalRequest = remoteAddr.startsWith("127.0.0.1") || remoteAddr.startsWith("10.2.5.52:");
+	    	    
 	    Cookie session = getSession(params);	    
 	    Cookie cookie  = getOrCreateCookie(headers, session);	    
 	    System.out.println("serveUnsecurely: " + method + " '" + uri + "', cookie=" + cookie);
 	    
-	    if (Cookie.isAuthorized(session) || remoteAddr.startsWith("127.0.0.1"))
+	    if (Cookie.isAuthorized(session) || isLocalRequest)
 	    {
 		cookie.setAuthorized(true);
 	    }	    	    
@@ -2398,7 +2392,12 @@ public class GardenoidService extends Service
 		    else
 		    {
 			InputStream is = mTemplateEngine.getFile("reject.html", gzipAccepted);
-			return new Response(Status.OK, CT_TEXT_PLAIN, is);
+			Response r = new Response(Status.OK, CT_TEXT_PLAIN, is);
+		        if (gzipAccepted)
+		        {
+		            r.addHeader("Content-Encoding", "gzip");
+		        }
+			return r;
 		    }
 		}
 
@@ -2417,6 +2416,10 @@ public class GardenoidService extends Service
 		
 		InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
 		Response r = new Response(Status.OK, CT_TEXT_HTML, is);
+	        if (gzipAccepted)
+	        {
+	            r.addHeader("Content-Encoding", "gzip");
+	        }
 		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
 	    }
@@ -2424,7 +2427,7 @@ public class GardenoidService extends Service
 	    if (uri.startsWith("/mobile.html"))
 	    {
 		cookie.setMobile(true);
-		System.out.println("mobile.html: cookie=" + cookie);
+		//System.out.println("mobile.html: cookie=" + cookie);
 		uri = "/index.html";
 	    }
 	    else if (uri.startsWith("/desktop.html"))
@@ -2447,7 +2450,7 @@ public class GardenoidService extends Service
 
 	    if (uri.startsWith("/rest"))
 	    {
-		return createRestResponse(uri.substring(5), params);
+		return createRestResponse(uri.substring(5), params, gzipAccepted);
 	    }
 	    else if (uri.startsWith("/api"))
 	    {		
@@ -2475,7 +2478,7 @@ public class GardenoidService extends Service
 	    if (null==is)
 	    {            
 		//page = mTemplateEngine.render("index.html", map);
-		is = mTemplateEngine.getRawFile("index.html");
+		is = mTemplateEngine.getFile("index.html", gzipAccepted);
 	    }
 
 	    if (null==is)
@@ -2484,14 +2487,16 @@ public class GardenoidService extends Service
 		r.addHeader("Connection", "close");
 		return r; 
 	    }
-	    else
+
+	    Response r =  new Response(Status.OK, CT_TEXT_HTML, is);
+	    r.addHeader("Connection", "close");
+	    r.addHeader("Set-Cookie", cookie.getName());
+	    if (gzipAccepted)
 	    {
-		//Response r =  new Response(Status.OK, CT_TEXT_HTML, page);
-		Response r =  new Response(Status.OK, CT_TEXT_HTML, is);
-		r.addHeader("Connection", "close");
-		r.addHeader("Set-Cookie", cookie.getName());
-		return r;
-	    }            
+		r.addHeader("Content-Encoding", "gzip");
+	    }
+	    
+	    return r;
 	}
 
         private Response createGlobalJsResponse(Map<String, String> params, Cookie cookie)
@@ -2500,9 +2505,9 @@ public class GardenoidService extends Service
 	    boolean withConditionals = params.containsKey("with_conditionals");
 	    
 	    String script = "";
-	    script += "var global_version = " +  mServiceVersion     + ";\n";
-	    script += "var global_desktop = " + (!cookie.isMobile()) + ";\n";
-	    script += "var global_cookie  = " + cookie.getName()     + ";\n";
+	    script += "var global_version = \"" +  mServiceVersion     + "\";\n";
+	    script += "var global_cookie  = \"" + cookie.getName()     + "\";\n";
+	    script += "var global_desktop = "   + (!cookie.isMobile()) + ";\n";
 	    
 	    if (withStrands)
 	    {
@@ -2535,7 +2540,7 @@ public class GardenoidService extends Service
 	        r.addHeader("Expires", expires);
 	        if (gzipAccepted)
 	        {
-	    	r.addHeader("Content-Encoding", "gzip");
+	    		r.addHeader("Content-Encoding", "gzip");
 	        }
 	        return r;
 	    }
@@ -2543,9 +2548,9 @@ public class GardenoidService extends Service
         }
 
         private Response createImageResponse(String uri)
-        {
+        {            
 	    String expires = createExpirationDate();
-	    InputStream is = mTemplateEngine.getRawFile(uri); 
+ 	    InputStream is = mTemplateEngine.getRawFile(uri); 
 	    String contentType = getContentType(uri);
 	    Response r = new Response(Status.OK, contentType, is);
 	    r.addHeader("Cache-Control", "Public");
@@ -2806,21 +2811,24 @@ public class GardenoidService extends Service
 	@Override
         public Response serve(String uri, Method method, Map<String, String> headers, Map<String, String> parms, Map<String, String> files, String remoteAddr)
         {
+	    Response r = null;
 	    try
 	    {
 		long t1 = U.millis();
-		Response r = serveUnsecurely(method, uri, parms, headers, remoteAddr);
+		r = serveUnsecurely(method, uri, parms, headers, remoteAddr);		
 		long t2 = U.millis();
 		
 		System.out.println("serve: " + method + " " + uri + " in " + (t2-t1) + " ms");
-		
 		return r;
 	    }
 	    catch (Exception e)
 	    { 
+		System.err.println("Exception serving uri=" + uri + ", header=" + headers + ", parms=" + parms + ":");
 		e.printStackTrace();
-		return new Response(Status.INTERNAL_ERROR, CT_TEXT_PLAIN, ""+e);
+		r =  new Response(Status.INTERNAL_ERROR, CT_TEXT_PLAIN, ""+e);
 	    }
+	    
+	    return r;
         }
 
     }

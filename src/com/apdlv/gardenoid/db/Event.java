@@ -141,7 +141,7 @@ public class Event
 	try
 	{
 	    String str = U.toJson(
-		    "id",  id,
+		    "id",   id,
 		    "date,  U.YYYYMMDD_hhmmss.format(datetime.getTime())," +
 		    "mask", activeMask,
 		    "msg",  message

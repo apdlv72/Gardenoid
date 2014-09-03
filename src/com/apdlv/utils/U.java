@@ -128,7 +128,7 @@ public class U
 	for (int i=0; i<keyVals.length; i+=2)
 	{
 	    String key = (String) keyVals[i];
-	    String val = (String) keyVals[i+1];
+	    Object val = (Object) keyVals[i+1];
 	    map.put(key, val);
 	}
 	
