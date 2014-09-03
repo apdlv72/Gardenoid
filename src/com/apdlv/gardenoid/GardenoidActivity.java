@@ -58,12 +58,13 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
     private String mServiceLink    = "undefined";
 
     
-    private String makeLocalUrl()
+    private String makeLocalUrl(String page)
     {
 	try
 	{	    
+	    if (null==page) page="mobile.html";
 	    String sess = null==mConnection.mService ? "none" : mConnection.mService.createSessionInternally();
-	    String link  = String.format("%s127.0.0.1:%d/mobile.html?session=%s&version=%x", mServerProtocol, mServerPort, sess, mStartTime);
+	    String link  = String.format("%s127.0.0.1:%d/%s?session=%s&version=%x", mServerProtocol, mServerPort, page, sess, mStartTime);
 	    return link;
 	}
 	catch (Exception e)
@@ -142,7 +143,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 				
 		mServiceLink = mServerProtocol + mServerAddr + ":" + mServerPort;
 		
-		String link  = makeLocalUrl();
+		String link  = makeLocalUrl(null);
 		mWebView.loadUrl(link);
 	    }
 	    else
@@ -247,7 +248,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 		@Override
 		public void onCloseWindow(WebView window)
 		{
-		    String link  = makeLocalUrl();
+		    String link  = makeLocalUrl(null);
 		    window.loadUrl(link);
 		}
 	});
@@ -547,7 +548,7 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	{
 	    if (null!=mHttpServer && mHttpServer.isAlive())
 	    {
-		String link = makeLocalUrl();
+		String link = makeLocalUrl(null);
 		Intent intent = new Intent(Intent.ACTION_VIEW);
 		intent.setData(Uri.parse(link));
 		startActivity(intent);
@@ -555,7 +556,13 @@ public class GardenoidActivity extends Activity implements OnCheckedChangeListen
 	} 
 	else if (item.getItemId()==R.id.menuReload)
 	{
-	    String link  = makeLocalUrl();
+	    String link  = makeLocalUrl(null);
+	    mWebView.loadUrl(link);
+	    //mWebView.reload();
+	} 
+	else if (item.getItemId()==R.id.menuSetPassword)
+	{
+	    String link  = makeLocalUrl("password.html");
 	    mWebView.loadUrl(link);
 	    //mWebView.reload();
 	} 

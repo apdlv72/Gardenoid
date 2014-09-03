@@ -20,6 +20,10 @@
         android:icon="@android:drawable/ic_menu_upload"
         android:title="Open in browser" android:titleCondensed="Browser">
     </item>
-
+    <item
+        android:id="@+id/menuSetPassword"
+        android:title="Set password" android:titleCondensed="Password">
+    </item>
+    
 </menu>
         

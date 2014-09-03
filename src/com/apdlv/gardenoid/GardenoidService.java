@@ -1710,6 +1710,32 @@ public class GardenoidService extends Service
 	public final String CT_JAVASCRIPT   = "application/javascript";
 	public final String CT_CSS          = "text/css";
 
+	public class CompressedResponse extends Response
+	{
+	    public CompressedResponse(String contentType, InputStream is, boolean gzipAccepted)
+	    {
+		super(Status.OK, contentType, is);
+		if (gzipAccepted)
+		{
+		    addHeader("Content-Encoding", "gzip");
+		}
+	    }
+	}
+
+	public class CompressedHtmlResponse extends CompressedResponse
+	{
+	    public CompressedHtmlResponse(InputStream is, boolean gzipAccepted)
+	    {
+		super(CT_TEXT_HTML, is, gzipAccepted);
+	    }
+
+	    public CompressedHtmlResponse(InputStream is, boolean gzipAccepted, String cookie)
+            {
+	        this(is, gzipAccepted);
+	        addHeader("Set-Cookie", cookie);
+            }
+	}
+	
 	public class Redirect extends Response
 	{
 	    public Redirect(String location, String cookie)
@@ -2331,10 +2357,17 @@ public class GardenoidService extends Service
 	    {
 		return new Response(Status.OK, CT_IMAGE_XICON, new ByteArrayInputStream(FAVICON_DATA));
 	    }
-
+		
 	    String ae = headers.get("accept-encoding");
 	    boolean gzipAccepted   = (null!=ae && ae.contains("gzip"));
-	    boolean isLocalRequest = remoteAddr.startsWith("127.0.0.1") || remoteAddr.startsWith("10.2.5.52:");
+	    boolean isLocalRequest = remoteAddr.startsWith("127.0.0.1"); // || remoteAddr.startsWith("10.2.5.52:");
+
+	    // jquery need to be accessible also when not authorized (since used in login.html"
+	    if (uri.startsWith("/js/jquery.min.js"))
+	    {		
+		InputStream is = mTemplateEngine.getFile("js/jquery.min.js", gzipAccepted);
+		return new CompressedResponse(CT_JAVASCRIPT, is, gzipAccepted);
+	    }
 	    	    
 	    Cookie session = getSession(params);	    
 	    Cookie cookie  = getOrCreateCookie(headers, session);	    
@@ -2359,13 +2392,20 @@ public class GardenoidService extends Service
 	    
 	    if (isLocalRequest && uri.endsWith("/password.html"))
 	    {
-		String pass1 = params.get("pass1");
-		String pass2 = params.get("pass2");
-		if (null==pass1 || null==pass2)
+		String submit = params.get("submit");
+		String pass1  = params.get("pass1");
+		String pass2  = params.get("pass2");
+		
+		if (null==submit)
+		{
+		    InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
+		    return new CompressedHtmlResponse(is, gzipAccepted);
+		}
+		else if (null==pass1 || null==pass2 || pass1.length()<1)
 		{
 		    return new Redirect("/password.html?error=Passwords+missing", cookie.getName(), "Password(s) missing");
 		}
-		else if (!U.matches(pass1, pass2))
+		else if (U.matches(pass1, pass2))
 		{
 		    if (setAdminPassword(pass1))
 		    {
@@ -2373,7 +2413,7 @@ public class GardenoidService extends Service
 		    }
 		    else
 		    {
-			return new Redirect("/login.html", cookie.getName(), "Failed to set admin password");
+			return new Redirect("/password.html?error=Failed+to+set+password.", cookie.getName(), "Failed to set admin password");
 		    }
 		}
 		
@@ -2392,7 +2432,7 @@ public class GardenoidService extends Service
 		    else
 		    {
 			InputStream is = mTemplateEngine.getFile("reject.html", gzipAccepted);
-			Response r = new Response(Status.OK, CT_TEXT_PLAIN, is);
+			Response r = new Response(Status.OK, CT_TEXT_HTML, is);
 		        if (gzipAccepted)
 		        {
 		            r.addHeader("Content-Encoding", "gzip");
@@ -2401,9 +2441,8 @@ public class GardenoidService extends Service
 		    }
 		}
 
-		String pass = params.get("user");
-		
-		boolean authorized = cookie.isAuthorized() || (U.matches(passwordExpected,pass));						
+		String passwordSubmitted = params.get("pass");		
+		boolean authorized = cookie.isAuthorized() || (U.matches(passwordExpected,passwordSubmitted));						
 		if (authorized) 
 		{
 		    boolean mobile = isMobileDevice(headers);
@@ -2414,13 +2453,18 @@ public class GardenoidService extends Service
 		    return new Redirect(location, cookie.getName(), "Login sucessful");
 		}
 		
+		if (null!=passwordSubmitted && passwordSubmitted.length()>0)
+		{
+		    return new Redirect("/login.html?error=Invalid+password", cookie.getName());
+		}
+		
 		InputStream is = mTemplateEngine.getFile(uri, gzipAccepted);
-		Response r = new Response(Status.OK, CT_TEXT_HTML, is);
-	        if (gzipAccepted)
-	        {
-	            r.addHeader("Content-Encoding", "gzip");
-	        }
-		r.addHeader("Set-Cookie", cookie.getName());
+		Response r = new CompressedHtmlResponse(is, gzipAccepted, cookie.getName());
+//	        if (gzipAccepted)
+//	        {
+//	            r.addHeader("Content-Encoding", "gzip");
+//	        }
+//		r.addHeader("Set-Cookie", cookie.getName());
 		return r;
 	    }
 	    
