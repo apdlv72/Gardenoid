@@ -142,7 +142,7 @@ public class Event
 	{
 	    String str = U.toJson(
 		    "id",   id,
-		    "date,  U.YYYYMMDD_hhmmss.format(datetime.getTime())," +
+		    "date", U.YYYYMMDD_hhmmssMS.format(datetime.getTime()),
 		    "mask", activeMask,
 		    "msg",  message
 	    );

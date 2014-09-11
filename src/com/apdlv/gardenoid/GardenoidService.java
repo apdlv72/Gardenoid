@@ -617,7 +617,7 @@ public class GardenoidService extends Service
 	    SimpleDateFormat YYYYMMDD_hhmmss = new  SimpleDateFormat("yyyyMMdd_HHmmss");	    
 	    mServiceVersion = YYYYMMDD_hhmmss.format(Calendar.getInstance().getTime());
 
-	    Toast.makeText(getApplicationContext(), "Service Created",Toast.LENGTH_SHORT).show();
+	    //Toast.makeText(getApplicationContext(), "Service Created",Toast.LENGTH_SHORT).show();
 	    initBluetooth();
 
 	    // important: database must be initialized before HTTP server,

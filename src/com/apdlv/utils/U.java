@@ -45,8 +45,9 @@ public class U
 	return null==text ? "null" : "\"" + text.replaceAll("\"", "\\\"") + "\"";
     }
 
-    public static final SimpleDateFormat YYYYMMDD_hhmmss = new  SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public static final SimpleDateFormat YYYYMMDD = new  SimpleDateFormat("yyyy-MM-dd");
+    public static final SimpleDateFormat YYYYMMDD_hhmmss   = new  SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final SimpleDateFormat YYYYMMDD_hhmmssMS = new  SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
+    public static final SimpleDateFormat YYYYMMDD          = new  SimpleDateFormat("yyyy-MM-dd");
 
     public static Integer toInt(String string)
     {
