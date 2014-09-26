@@ -31,7 +31,8 @@ public class WeatherUpdateThread extends Thread
     private ForecastProvider mForecastProvider;
     private DAO mDatabase;
     private GardenoidService mService;
-    static final String PLACECODE_COLOGNE = "GMXX0018";
+    //static final String PLACECODE_COLOGNE = "GMXX0018";
+    static final String PLACECODE_FRECHEN = "GMXX0595";
     private static final String TAG = WeatherUpdateThread.class.getSimpleName();
     
     public WeatherUpdateThread(GardenoidService service, ForecastProvider forecastProvider, DAO database)
@@ -53,7 +54,7 @@ public class WeatherUpdateThread extends Thread
 	    // found weather info less than "age" hour old ... skip update
 	    if (null==w) 
 	    {
-		wc = mForecastProvider.getForecast(PLACECODE_COLOGNE, "c");
+		wc = mForecastProvider.getForecast(PLACECODE_FRECHEN, "c");
 		if (null!=wc)
 		{	
 		    try

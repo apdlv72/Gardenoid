@@ -2230,7 +2230,7 @@ public class GardenoidService extends Service
 		    String placeCode = params.get("p");
 		    String tempUnit  = params.get("u");
 
-		    if (null==placeCode) placeCode = WeatherUpdateThread.PLACECODE_COLOGNE; 
+		    if (null==placeCode) placeCode = WeatherUpdateThread.PLACECODE_FRECHEN; 
 		    if (null==tempUnit)  tempUnit  = TEMP_UNIT_CELSIUS;
 
 		    WeatherConditions cond = mForecastProvider.getForecast(placeCode, tempUnit);	            
