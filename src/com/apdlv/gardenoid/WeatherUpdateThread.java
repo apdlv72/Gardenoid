@@ -1,5 +1,14 @@
 package com.apdlv.gardenoid;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -12,6 +21,7 @@ import android.util.Log;
 
 import com.apdlv.gardenoid.db.DAO;
 import com.apdlv.gardenoid.db.Weather;
+import com.apdlv.utils.U;
 import com.apdlv.yahooweather.Forecast;
 import com.apdlv.yahooweather.ForecastProvider;
 import com.apdlv.yahooweather.WeatherConditions;
@@ -45,11 +55,20 @@ public class WeatherUpdateThread extends Thread
 	    {
 		wc = mForecastProvider.getForecast(PLACECODE_COLOGNE, "c");
 		if (null!=wc)
-		{
+		{	
+		    try
+		    {
 		    // http://weather.yahooapis.com/forecastrss?p=GMXX0018&u=c
 		    updateForecasts(wc);
 		    updateWeather(wc);	
 		    updateCodes(wc);
+		    }
+		    catch (Exception e) { System.out.println("WeatherUpdateThread: Exception: " + e); }
+		    try
+		    {
+			sendForecastToFritzRepeater(wc); 
+		    } 
+		    catch (Exception e) { System.out.println("WeatherUpdateThread: Exception: " + e); }
 		}
 	    }
 	    else
@@ -69,6 +88,50 @@ public class WeatherUpdateThread extends Thread
 	}
     }
 
+
+    private void sendForecastToFritzRepeater(WeatherConditions wc) throws ParseException, IOException
+    {
+	final String pass   = SECRETS.FRITZ_REPEATER_PASSWORD;
+	final String urlStr = "http://" + SECRETS.FRITZ_REPEATER_DOMAIN + "//cgi-bin/webcm";
+	
+	Forecast fc = wc.getForecastA();
+	String cond = fc.getText();
+	String hi = fc.getHigh();
+	String lo = fc.getLow();
+		
+	Calendar day = parseDate(fc.getDate());
+	SimpleDateFormat SDF = new SimpleDateFormat("E d.", Locale.GERMAN);
+	String date = SDF.format(day.getTime());
+	
+	String text = String.format("%s: %s to %s¡C, %s", date, hi, lo, cond);
+	text = URLEncoder.encode(text);
+	
+	String body = "login:command/password=" + pass + "&nlr:settings/TDS_Config=3&nlr:settings/TDS_ScrollText=" + text;
+	
+	URL url = new URL(urlStr);
+	
+	HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+	connection.setConnectTimeout(5*1000);
+	connection.setRequestMethod( "POST" );
+	connection.setDoInput( true );
+	connection.setDoOutput( true );
+	connection.setUseCaches( false );
+	connection.setRequestProperty( "Content-Type", "application/x-www-form-urlencoded" );
+	connection.setRequestProperty( "Content-Length", String.valueOf(body.length()));
+
+	OutputStreamWriter writer = new OutputStreamWriter( connection.getOutputStream() );
+	writer.write( body );
+	writer.flush();
+
+	BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()) );
+	for ( String line; (line = reader.readLine()) != null; )
+	{
+	    System.out.println( line );
+	}
+
+	writer.close();
+	reader.close();	
+    }
 
     private void updateForecasts(WeatherConditions wc) throws Exception
     {
